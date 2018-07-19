@@ -1,0 +1,33 @@
+
+#Header {
+	position: relative;
+	width: 100%;
+	font-size: 22px;
+	display: flex;
+	flex-flow: row;
+	z-index: 1; /* Allows UserMenu to go overtop of the main-bar */
+	background-color: rgba(0, 0, 0, 0.15);
+	padding: 5px 0 5px 10px;
+
+	* {
+		margin-right: 10px;
+	}
+
+	> .fa {
+		margin: 3px 0px;
+		padding: 8px 10px;
+	}
+
+	> .pull-right {
+		margin-right: 0;
+		margin-left: auto !important;
+	}
+
+	> div {
+		margin-top: 0;
+
+		span {
+			margin-top: 8px;
+		}
+	}
+}

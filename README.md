@@ -1,2 +1,2 @@
-# feedback
+# Feedback
 Freedom-preserving feedback collection and analysis tool

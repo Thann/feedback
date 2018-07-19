@@ -1,0 +1,111 @@
+// @import "~bootstrap/dist/css/bootstrap.css";
+// @import "~font-awesome/css/font-awesome.css";
+
+body {
+	margin: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	color: white;
+	font-weight: 500;
+	font-family: Roboto, sans-serif;
+	background: linear-gradient(135deg, #6080E7, #91D4ED);
+
+	> .main-bar {
+		flex: 1 1 100%;
+		display: flex;
+		flex-flow: row;
+		position: relative;
+		overflow-x: auto;
+
+		> .main-panel {
+			flex: 1 1 100%;
+			display: flex;
+			flex-direction: row;
+			position: relative;
+
+			> * {
+				flex: 1;
+			}
+		}
+	}
+
+	> .footer {
+		background-color: yellow;
+	}
+
+	a {
+		color: white;
+		font-weight: bold;
+	}
+
+	input,
+	.btn-default {
+		color: #4C78D0;
+		&:hover { color: #2c54a5; }
+	}
+}
+
+/* === Panels === */
+
+.container {
+	max-width: 100%;
+	@media (max-width: 767px) {
+		width: 100%;
+		max-width: 750px;
+	}
+
+	flex: none !important;
+	&.flex { flex: inherit !important; }
+
+	> .panel.panel-default {
+		background-color: rgba(0,0,0,0.01);
+		margin-top: 30px;
+		width: 100%;
+
+		.panel-heading {
+			color: inherit;
+			font-weight: bold;
+			background: linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0));
+			//TODO: no selecting
+
+			border-bottom: none;  //HACK: hide border when collapsed
+
+			.fa {
+				margin-left: 20px;
+			}
+		}
+		.panel-body {
+			border-top: 1px solid #ddd;  //HACK:
+
+			form:last-child {
+				margin-bottom: 0;
+			}
+			table {
+				th,td {
+					padding: 5px;
+				}
+			}
+		}
+		.panel-footer {
+			background: transparent;
+		}
+	}
+}
+
+/* === Buttons === */
+
+//TODO: btn-clear
+.btn.btn-clear {
+	background-color: transparent;
+}
+
+/* === Utilities === */
+
+.dropdown-menu > li {
+	padding: 0 10px;
+}
+
+.disabled {
+	color: grey;
+}
