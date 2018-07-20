@@ -1,4 +1,4 @@
-// Doorbot - loads the libraries and exports the global variable "Doorbot".
+// Feedback - loads the libraries and exports the global variable "Feedback".
 
 require('backbone-subviews'); // also makes "Backbone" globally available.
 require('./jquery_extensions');

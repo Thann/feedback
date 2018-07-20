@@ -15,7 +15,8 @@ module.exports = function(app) {
 	app.   get('/users/:username', read);
 	app. patch('/users/:username', update);
 	app.delete('/users/:username', remove);
-	app.   get('/users/:username/logs', logs);
+	app.delete('/users/:username/campaigns', campaigns);
+	app.delete('/users/:username/feedbacks', feedbacks);
 };
 
 // Returns the user that owns the session cookie
@@ -111,24 +112,13 @@ async function index(request, response) {
 		return response.status(403).send({error: 'must be admin'});
 	}
 
-	const users = await db.all(`
-		SELECT users.*, '['||
-			GROUP_CONCAT( '{'||
-				'"id":'          || permissions.door_id ||','||
-				'"name":"'       || IFNULL(doors.name, '') ||'",'||
-				'"creation":"'   || IFNULL(permissions.creation, '') ||'",'||
-				'"expiration":"' || IFNULL(permissions.expiration, '') ||'",'||
-				'"constraints":"'|| IFNULL(permissions.constraints, '') ||'"'||
-			'}' ) ||']' AS doors FROM users
-		LEFT JOIN permissions ON users.id = permissions.user_id
-		LEFT JOIN doors ON permissions.door_id = doors.id
-		GROUP BY users.id`);
+	const users = await db.all('SELECT * FROM users');
 
+	// TODO: generator!
 	const userList = [];
 	for (const usr of users) {
 		userList.push({
 			id: usr.id,
-			doors: JSON.parse(usr.doors) || [],
 			admin: Boolean(usr.admin),
 			username: usr.username,
 			password: usr.pw_salt? undefined : usr.password_hash,
@@ -240,6 +230,8 @@ async function read(request, response) {
 
 async function update(request, response) {
 	const user = await checkCookie(request, response);
+	if (request.params.username === 'me')
+		request.params.username = user.username;
 	if (!user.admin && (
 		request.body.password && request.body.password.length < 8)) {
 		return response.status(400)
@@ -262,7 +254,7 @@ async function update(request, response) {
 	}
 
 	const values = {};
-	for (const k of ['keycode', 'admin']) {
+	for (const k of ['admin']) {
 		if (request.body[k] !== undefined)
 			values[k] = request.body[k];
 	}
@@ -299,17 +291,7 @@ async function update(request, response) {
 	}
 
 	const usr = await db.get(`
-		SELECT users.*, '['||
-			GROUP_CONCAT( '{'||
-				'"id":'          || permissions.door_id ||','||
-				'"name":"'       || IFNULL(doors.name, '') ||'",'||
-				'"creation":"'   || IFNULL(permissions.creation, '') ||'",'||
-				'"expiration":"' || IFNULL(permissions.expiration, '') ||'",'||
-				'"constraints":"'|| IFNULL(permissions.constraints, '') ||'"'||
-			'}' ) ||']' AS doors FROM users
-		LEFT JOIN permissions ON users.id = permissions.user_id
-		LEFT JOIN doors ON permissions.door_id = doors.id
-		WHERE username = ?`,
+		SELECT * FROM users WHERE username = ? AND deleted_at IS NULL`,
 		request.params.username);
 
 	response.send({
@@ -324,30 +306,29 @@ async function update(request, response) {
 
 async function remove(request, response) {
 	const user = await checkCookie(request, response);
-	if (!user.admin) {
-		return response.status(403).send({error: 'must be admin'});
+	// if (request.params.username === 'me')
+	// 	request.params.username = user.username;
+	if (!user.admin && request.params.username !== user.username) {
+		return response.status(403).send({error: 'only admins can delete others'});
 	}
 
 	//TODO: use ON DELETE CASCADE instead?
+	//TODO: expire campiagns
 	await db.run(`
-		DELETE FROM permissions WHERE user_id = (
-			SELECT id FROM users WHERE username = ?)`,
-		request.params.username);
-	await db.run(`
-		DELETE FROM entry_logs WHERE user_id = (
-			SELECT id FROM users WHERE username = ?)`,
-		request.params.username);
-	const r = await db.run(
-		'DELETE FROM users WHERE username = ?',
+		UPDATE users SET deleted_at = CURRENT_TIMESTAMP, session_cookie = NULL
+		WHERE username = ? AND deleted_at IS NULL`,
 		request.params.username);
 
 	response.status(r.stmt.changes? 204 : 404).end();
 }
 
-async function logs(request, response) {
+async function campaigns(request, response) {
 	const user = await checkCookie(request, response);
+	if (request.params.username === 'me')
+		request.params.username = user.username;
 	if (!user.admin && request.params.username !== user.username) {
-		return response.status(403).send({error: 'must be admin'});
+		return response.status(403)
+			.send({error: 'only admins can view others'});
 	}
 
 	let lastID;
@@ -357,13 +338,36 @@ async function logs(request, response) {
 		return response.status(400).send({last_id: 'must be an int'});
 	}
 
-	const logs = await db.all(`
-		SELECT entry_logs.*, doors.name AS door FROM entry_logs
-		INNER JOIN users ON entry_logs.user_id = users.id
-		INNER JOIN doors ON entry_logs.door_id = doors.id
-		WHERE users.username = ? AND entry_logs.id < COALESCE(?, 9e999)
-		ORDER BY entry_logs.id DESC LIMIT ?`,
-		request.params.username, lastID, 50);
+	const camps = await db.all(`
+		SELECT * FROM campaigns
+		WHERE user_id = ? AND id < COALESCE(?, 9e999)
+		ORDER BY id DESC LIMIT ?`,
+		user.id, lastID, 50);
 
-	response.send(logs);
+	response.send(camps);
+}
+
+async function feedbacks(request, response) {
+	const user = await checkCookie(request, response);
+	if (request.params.username === 'me')
+		request.params.username = user.username;
+	if (!user.admin && request.params.username !== user.username) {
+		return response.status(403)
+			.send({error: 'only admins can view others'});
+	}
+
+	let lastID;
+	try {
+		lastID = parseInt(request.query.last_id || 0); //TODO: add "|| 0" to other places?
+	} catch(e) {
+		return response.status(400).send({last_id: 'must be an int'});
+	}
+
+	const camps = await db.all(`
+		SELECT * FROM feedbacks
+		WHERE user_id = TRUE AND id < COALESCE(?, 9e999)
+		ORDER BY id DESC LIMIT ?`,
+		lastID, 50);
+
+	response.send(camps);
 }
