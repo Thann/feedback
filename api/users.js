@@ -15,7 +15,7 @@ module.exports = function(app) {
 	app.   get('/users/:username', read);
 	app. patch('/users/:username', update);
 	app.delete('/users/:username', remove);
-	app.delete('/users/:username/campaigns', campaigns);
+	app.delete('/users/:username/forms', forms);
 	app.delete('/users/:username/feedbacks', feedbacks);
 };
 
@@ -322,7 +322,7 @@ async function remove(request, response) {
 	response.status(r.stmt.changes? 204 : 404).end();
 }
 
-async function campaigns(request, response) {
+async function forms(request, response) {
 	const user = await checkCookie(request, response);
 	if (request.params.username === 'me')
 		request.params.username = user.username;
@@ -339,7 +339,7 @@ async function campaigns(request, response) {
 	}
 
 	const camps = await db.all(`
-		SELECT * FROM campaigns
+		SELECT * FROM forms
 		WHERE user_id = ? AND id < COALESCE(?, 9e999)
 		ORDER BY id DESC LIMIT ?`,
 		user.id, lastID, 50);
