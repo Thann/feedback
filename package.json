@@ -1,10 +1,10 @@
 {
-  "name": "doorbot",
+  "name": "feedback",
   "version": "0.0.1",
   "description": "Simple door opener and user managment system",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Thann/Doorbot.git"
+    "url": "https://github.com/Thann/Feedback.git"
   },
   "bin": "server.js",
   "license": "AGPL-3.0+",

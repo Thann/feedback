@@ -17,7 +17,7 @@
         "commonjs": true
       },
       "globals": {
-        "Doorbot": true,
+        "Feedback": true,
         "Backbone": true,
         "Rivets": true,
         "_": true

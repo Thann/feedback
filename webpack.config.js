@@ -10,7 +10,7 @@ module.exports = function(env) {
 		output: {
 			path: __dirname + '/dist',
 			libraryTarget: 'var',
-			library: 'Doorbot',
+			library: 'Feedback',
 			filename: 'bundle.js',
 		},
 		resolve: { alias: {

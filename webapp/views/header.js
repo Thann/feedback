@@ -5,7 +5,7 @@ module.exports = Backbone.View.extend({
 	id: 'Header',
 	template: `
 		<a href="#">
-			<span>Doorbot</span>
+			<span>Feedback</span>
 			<span rv-if="orgName">- { orgName }</span>
 		</a>
 		<span class="pull-right">
@@ -17,8 +17,8 @@ module.exports = Backbone.View.extend({
 	`,
 	render: function() {
 		this.scope = {
-			user: Doorbot.User,
-			orgName: Doorbot.AppConfig.OrgName,
+			user: Feedback.User,
+			orgName: Feedback.AppConfig.OrgName,
 		};
 		this.$el.html(this.template);
 		Rivets.bind(this.$el, this.scope);

@@ -1,48 +1,47 @@
 -- UP
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
-    username VARCHAR(255) UNIQUE,
+    -- TODO: test unique and delete
+    username VARCHAR(255) UNIQUE COLLATE NOCASE,
     pw_salt VARCHAR(255),
     password_hash VARCHAR(255),
     admin BOOLEAN DEFAULT 0,
-    keycode INTEGER UNIQUE,
     session_cookie VARCHAR(255) UNIQUE,
-    session_created DATETIME
+    session_created DATETIME,
+    deleted_at DATETIME
 );
 INSERT into users (username, password_hash, admin) VALUES ('admin', 'admin', 1);
 
-CREATE TABLE doors (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR(255) UNIQUE,
-    token VARCHAR(255)
-);
+-- CREATE UNIQUE INDEX idx_usernames on users (username)
+--     WHERE deleted_at IS NULL;
 
-CREATE TABLE permissions (
+CREATE TABLE forms (
     id INTEGER PRIMARY KEY,
+    hash VARCHAR(255) UNIQUE NOT NULL,
     user_id INTEGER,
-    door_id INTEGER,
     expiration DATETIME,
-    creation DATETIME DEFAULT CURRENT_TIMESTAMP,
-    constraints VARCHAR(255),
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(door_id) REFERENCES doors(id),
-    UNIQUE(user_id, door_id)
+    public BOOLEAN,
+    data TEXT, -- JSON
+    FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
-CREATE TABLE entry_logs (
+CREATE TABLE feedbacks (
     id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    door_id INTEGER,
-    method VARCHAR(255),
+    form_hash VARCHAR(255),
+    submitter_id INTEGER,
     time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(door_id) REFERENCES doors(id)
+    data TEXT, -- JSON
+    FOREIGN KEY(submitter_id) REFERENCES users(id),
+    FOREIGN KEY(form_hash) REFERENCES forms(hash),
+    -- TODO: test
+    UNIQUE(form_hash, submitter_id) ON CONFLICT REPLACE
 );
-CREATE INDEX idx_user_entries on entry_logs (user_id);
-CREATE INDEX idx_door_entries on entry_logs (door_id);
+-- CREATE UNIQUE INDEX idx_feedbacks on feedbacks (user_id, form_id, submitter_id);
+-- CREATE INDEX idx_user_feedbacks on feedbacks (user_id);
+-- CREATE INDEX idx_form_feedbacks on feedbacks (form_id);
+-- CREATE INDEX idx_submitter_feedbacks on feedbacks (submitter_id);
 
 -- DOWN
 DROP TABLE users;
-DROP TABLE doors;
-DROP TABLE permissions;
-DROP TABLE entry_logs;
+DROP TABLE forms;
+DROP TABLE feedbacks;
