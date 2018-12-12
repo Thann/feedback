@@ -202,17 +202,7 @@ async function read(request, response) {
 	}
 
 	const usr = await db.get(`
-		SELECT users.*, '['||
-			GROUP_CONCAT( '{'||
-				'"id":'          || permissions.door_id ||','||
-				'"name":"'       || IFNULL(doors.name, '') ||'",'||
-				'"creation":"'   || IFNULL(permissions.creation, '') ||'",'||
-				'"expiration":"' || IFNULL(permissions.expiration, '') ||'",'||
-				'"constraints":"'|| IFNULL(permissions.constraints, '') ||'"'||
-			'}' ) ||']' AS doors FROM users
-		LEFT JOIN permissions ON users.id = permissions.user_id
-		LEFT JOIN doors ON permissions.door_id = doors.id
-		WHERE username = ?`,
+		SELECT * FROM users WHERE username = ?`,
 		request.params.username);
 
 	if (!usr.id) {
@@ -220,7 +210,6 @@ async function read(request, response) {
 	}
 	response.send({
 		id: usr.id,
-		doors: JSON.parse(usr.doors) || [],
 		admin: Boolean(usr.admin),
 		username: usr.username,
 		password: user.admin && !usr.pw_salt && usr.password_hash || undefined,

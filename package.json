@@ -47,7 +47,6 @@
     "querystring": "^0.2.0",
     "rivets": "github:blikblum/rivets#971a83581611d125bb78f10a822d20b67b8d2b88",
     "rivets-backbone-adapter": "^2.2.0",
-    "rpi-gpio": "^1.0.0",
     "sass-loader": "^7.0.3",
     "sqlite": "^3.0.0",
     "style-loader": "^0.19.1",

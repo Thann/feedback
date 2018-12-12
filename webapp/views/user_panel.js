@@ -111,7 +111,6 @@ module.exports = Backbone.View.extend({
 		'click .logs .more': 'moreLogs',
 	},
 	initialize: function() {
-		// console.log("UUU", Feedback.Router.args, Feedback.User.get('username'))
 		const username = Feedback.Router.args[0];
 		if (username === Feedback.User.get('username')) {
 			this.user = Feedback.User;
@@ -122,36 +121,38 @@ module.exports = Backbone.View.extend({
 			}});
 		}
 
-		this.doors = new (Backbone.Collection.extend({
-			url: '/api/v1/doors',
-		}))();
-		this.doors.fetch();
+		// this.doors = new (Backbone.Collection.extend({
+		// 	url: '/api/v1/doors',
+		// }))();
+		// this.doors.fetch();
 
-		this.logs = new (Backbone.Collection.extend({
-			hasMore: true,
-			url: function() {
-				const lastID = this.models.length &&
-					this.models[this.models.length-1].id || '';
-				return '/api/v1/users/'+username+'/logs?last_id='+lastID;
-			},
-		}))();
-		this.moreLogs();
+		// this.logs = new (Backbone.Collection.extend({
+		// 	hasMore: true,
+		// 	url: function() {
+		// 		const lastID = this.models.length &&
+		// 			this.models[this.models.length-1].id || '';
+		// 		return '/api/v1/users/'+username+'/logs?last_id='+lastID;
+		// 	},
+		// }))();
+		// this.moreLogs();
+
+		//TODO: forms and feedbacks
 
 		const me = this.user.id === Feedback.User.id;
 		this.scope = {
 			me,
 			user: this.user,
-			logs: this.logs,
-			doors: this.doors,
+			// logs: this.logs,
+			// doors: this.doors,
 			self: Feedback.User,
 			pwType: me ? 'password': 'text',
 			showCurrent: !this.user.get('requires_reset') && me,
 		};
 
 		//TODO: render should not be nessicary
-		this.logs.on('sync', _.bind(this.render, this));
-		this.user.on('sync', _.bind(this.dingleDoors, this));
-		this.doors.on('sync', _.bind(this.dingleDoors, this));
+		// this.logs.on('sync', _.bind(this.render, this));
+		// this.user.on('sync', _.bind(this.dingleDoors, this));
+		// this.doors.on('sync', _.bind(this.dingleDoors, this));
 	},
 	render: function() {
 		if (Feedback.Router.args[0] !== this.user.get('username'))

@@ -1,14 +1,9 @@
 version: '2'
 services:
   server:
-    image: thann/doorbot  # x86
-    #image: thann/doorbot:arm7
-    #image: thann/doorbot:arm8
+    image: thann/feedback  # x86
     #build:
     #  context: .
-    #  dockerfile: Dockerfile
-    #  dockerfile: Dockerfile-arm7
-    #  dockerfile: Dockerfile-arm8
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -21,14 +16,6 @@ services:
     #  - ./lib:/usr/src/app/lib
     #  - ./db:/usr/src/app/db
     #command: server --dev
-
-  door:
-    image: thann/doorbot  # x86
-    #image: thann/doorbot:arm7
-    #image: thann/doorbot:arm8
-    privileged: true
-    restart: unless-stopped
-    command: door --insecure --dummy -s server -t "abc123"
 
 
 volumes:

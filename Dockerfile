@@ -1,6 +1,5 @@
 #TODO: use rpio which is faster and can build on node 10+
-#FROM node:alpine AS base
-FROM node:9-alpine AS base
+FROM node:alpine AS base
 EXPOSE 3000
 ENTRYPOINT ["node"]
 CMD ["server"]
@@ -40,7 +39,6 @@ COPY api /usr/src/app/api
 COPY webapp /usr/src/app/webapp
 COPY test /usr/src/app/test
 COPY server.js \
-     door.js \
      webpack.config.js \
      .eslintrc.json \
      /usr/src/app/

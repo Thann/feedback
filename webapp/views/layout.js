@@ -15,20 +15,14 @@ module.exports = Backbone.View.extend({
 		<div class="footer hidden"></div>
 	`,
 	loading: true,
-	mainTemplate: '<div data-subview="main"></div>',
-	userTemplate: '<div data-subview="user"></div>',
-	// doorTemplate: '<div data-subview="door"></div>',
-	adminTemplate: '<div data-subview="admin"></div>',
-	loginTemplate: '<div data-subview="login"></div>',
 	events: {
 		'click #Header .toggle-left-sidebar': function() {
 			this.subviews.sidebar.toggle();
 		},
 	},
 	subviewCreators: {
-		main: function() { return new Feedback.Views.MainPanel(); },
+		form: function() { return new Feedback.Views.FormPanel(); },
 		user: function() { return new Feedback.Views.UserPanel(); },
-		// door: function() { return new Feedback.Views.DoorPanel(); },
 		admin: function() { return new Feedback.Views.AdminPanel(); },
 		login: function() { return new Feedback.Views.LoginPanel(); },
 		header: function() { return new Feedback.Views.Header(); },
@@ -41,19 +35,19 @@ module.exports = Backbone.View.extend({
 
 		Feedback.Router = new (Backbone.Router.extend({
 			routes: {
-				'': 'mainTemplate',
-				'login': 'loginTemplate',
-				'admin': 'adminTemplate',
-				'user/:id': 'userTemplate',
-				// 'door/:id': 'doorTemplate',
-				'*notFound': '',
+				'': 'login',
+				'login': 'login',
+				'admin': 'admin',
+				'user/:id': 'user',
+				'*notFound': 'form',
 			},
 			execute: function(cb, args, name) {
 				this.args = args;
 				if (!layout.loading && !Feedback.User.isAuthed) {
 					this.navigate('login', {trigger: true});
-				} else if (!Feedback.Router.name && layout[name]) {
-					layout.render(layout[name]);
+				} else if (!Feedback.Router.name
+						&& layout.subviewCreators[name]) {
+					layout.render(name);
 				} else {
 					// route not found
 					this.navigate('', {trigger: true});
@@ -66,8 +60,9 @@ module.exports = Backbone.View.extend({
 			if (loggedIn) {
 				layout.render();
 			} else {
+				//TODO: unauth feedbacks
 				Feedback.Router.navigate('login', {trigger: false});
-				layout.render(layout.loginTemplate);
+				layout.render('login');
 			}
 		});
 
@@ -88,7 +83,7 @@ module.exports = Backbone.View.extend({
 	render: function(tmpl) {
 		this.$el.html(this.template);
 		if (tmpl)
-			this._current_template = tmpl;
+			this._current_template = `<div data-subview="${tmpl}"></div>`;
 		if (!this.loading) {
 			this.$('.main-panel').html(this._current_template);
 		}

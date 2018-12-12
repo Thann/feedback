@@ -1,19 +1,18 @@
 -- UP
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
-    -- TODO: test unique and delete
-    username VARCHAR(255) UNIQUE COLLATE NOCASE,
+    username VARCHAR(255) COLLATE NOCASE,
     pw_salt VARCHAR(255),
     password_hash VARCHAR(255),
-    admin BOOLEAN DEFAULT 0,
+    admin INTEGER DEFAULT 0,
     session_cookie VARCHAR(255) UNIQUE,
     session_created DATETIME,
+    email VARCHAR(255) UNIQUE COLLATE NOCASE,
     deleted_at DATETIME
 );
+CREATE UNIQUE INDEX idx_usernames on users (username)
+    WHERE deleted_at IS NULL;
 INSERT into users (username, password_hash, admin) VALUES ('admin', 'admin', 1);
-
--- CREATE UNIQUE INDEX idx_usernames on users (username)
---     WHERE deleted_at IS NULL;
 
 CREATE TABLE forms (
     id INTEGER PRIMARY KEY,
@@ -24,6 +23,7 @@ CREATE TABLE forms (
     data TEXT, -- JSON
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX idx_user_forms on forms (user_id);
 
 CREATE TABLE feedbacks (
     id INTEGER PRIMARY KEY,
@@ -36,10 +36,8 @@ CREATE TABLE feedbacks (
     -- TODO: test
     UNIQUE(form_hash, submitter_id) ON CONFLICT REPLACE
 );
--- CREATE UNIQUE INDEX idx_feedbacks on feedbacks (user_id, form_id, submitter_id);
--- CREATE INDEX idx_user_feedbacks on feedbacks (user_id);
--- CREATE INDEX idx_form_feedbacks on feedbacks (form_id);
--- CREATE INDEX idx_submitter_feedbacks on feedbacks (submitter_id);
+CREATE INDEX idx_form_feedbacks on feedbacks (form_hash);
+CREATE INDEX idx_submitter_feedbacks on feedbacks (submitter_id);
 
 -- DOWN
 DROP TABLE users;
