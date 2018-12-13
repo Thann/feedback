@@ -4,7 +4,7 @@ require('styles/form_panel.css');
 
 module.exports = Backbone.View.extend({
 	id: 'FormPanel',
-	className: 'container flex',
+	className: 'container',
 	template: `
 		<div rv-each-query="form:queries" class="row">
 			<div class="col-md-12">

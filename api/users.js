@@ -181,13 +181,12 @@ async function create(request, response) {
 			.send({username: 'already taken'});
 	}
 
-	//TODO: create invite permissions.
-
 	response.send({
 		id: sqlResp.stmt.lastID,
 		admin: Boolean(request.body.admin),
 		username: request.body.username,
 		password: pw,
+		// email:
 		requires_reset: true,
 	});
 }
@@ -205,11 +204,12 @@ async function read(request, response) {
 		SELECT * FROM users WHERE username = ?`,
 		request.params.username);
 
-	if (!usr.id) {
+	if (!usr) {
 		return response.status(404).end();
 	}
 	response.send({
 		id: usr.id,
+		// email: usr.email,
 		admin: Boolean(usr.admin),
 		username: usr.username,
 		password: user.admin && !usr.pw_salt && usr.password_hash || undefined,
@@ -285,7 +285,6 @@ async function update(request, response) {
 
 	response.send({
 		id: usr.id,
-		doors: JSON.parse(usr.doors) || [],
 		admin: Boolean(usr.admin),
 		username: usr.username,
 		password: user.admin && !usr.pw_salt && usr.password_hash || undefined,
@@ -303,7 +302,7 @@ async function remove(request, response) {
 
 	//TODO: use ON DELETE CASCADE instead?
 	//TODO: expire campiagns
-	await db.run(`
+	const r = await db.run(`
 		UPDATE users SET deleted_at = CURRENT_TIMESTAMP, session_cookie = NULL
 		WHERE username = ? AND deleted_at IS NULL`,
 		request.params.username);

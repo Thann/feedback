@@ -19,6 +19,15 @@ describe('Forms API', function() {
 					data: '{"name":"dude"}',
 				}).expect(200)
 		).body;
+		// create private form
+		this.private = (
+			await agent.post('/forms')
+				.send({
+					public: false,
+					expiration: '2018-12-28',
+					data: '{"name":"secret"}',
+				}).expect(200)
+		).body;
 	});
 
 	it('create', async function() {
@@ -40,16 +49,17 @@ describe('Forms API', function() {
 				hash: /\w{14}/,
 				public: true,
 				expiration: '2018-12-28',
-				data: '{"name":"sweet"}',
+				data: {name: 'sweet'},
 			});
 	});
 
 	it('read', async function() {
-		console.log("FFF", this.form)
 		await agent.get('/forms/' + this.form.hash)
 			.expect(200, this.form);
 		await agent.get('/forms/666')
 			.expect(404);
+		await agent.get('/forms/' + this.private.hash)
+			.expect(200, this.private);
 	});
 
 	it('index', async function() {
@@ -58,6 +68,7 @@ describe('Forms API', function() {
 	});
 
 	it('update', async function() {
+		console.log("FFF", this.form)
 		await agent.patch('/doors/1')
 			.expect(400, {name: 'required'});
 		await agent.patch('/doors/1')
@@ -200,14 +211,13 @@ describe('Forms API', function() {
 				.expect(200, this.form);
 			await agent.get('/forms/666')
 				.expect(404);
+			await agent.get('/forms/' + this.private.hash)
+				.expect(200, this.private);
 		});
 
 		it('index', async function() {
-			await agent.get('/doors')
-				.expect(200, [{
-					id: 1,
-					name: 'main',
-				}]);
+			await agent.get('/forms')
+				.expect(200, [this.form]);
 		});
 
 		it('update', async function() {
@@ -287,14 +297,13 @@ describe('Forms API', function() {
 				.expect(200, this.form);
 			await agent.get('/doors/666')
 				.expect(404);
+			await agent.get('/forms/' + this.private.hash)
+				.expect(200, this.private);
 		});
 
 		it('index', async function() {
-			await agent.get('/doors')
-				.expect(200, [{
-					id: 1,
-					name: 'main',
-				}]);
+			await agent.get('/forms')
+				.expect(200, [this.form]);
 		});
 
 		it('update', async function() {

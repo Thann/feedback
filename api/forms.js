@@ -27,7 +27,7 @@ async function index(request, response) {
 	}
 
 	console.log("LAST ID", lastID)
-	const camps = await db.all(`
+	const forms = await db.all(`
 		SELECT * FROM forms
 		WHERE public = 1
 			AND id < COALESCE(?, 9e999)
@@ -35,7 +35,12 @@ async function index(request, response) {
 		ORDER BY id DESC LIMIT ?`,
 		lastID, 50);
 
-	response.send(camps);
+	response.send(forms.map(form => ({
+		hash: form.hash,
+		expiration: form.expiration,
+		public: form.public,
+		data: JSON.parse(form.data),
+	})));
 }
 
 async function create(request, response) {
@@ -59,19 +64,19 @@ async function create(request, response) {
 }
 
 async function read(request, response) {
-	const camp = await db.get(`
+	const form = await db.get(`
 		SELECT * FROM forms
 		WHERE hash = ?`,
 		request.params.hash);
 
-	if (!camp) {
+	if (!form) {
 		return response.status(404).end();
 	}
 	response.send({
-		hash: camp.hash,
-		expiration: camp.expiration,
-		public: camp.public,
-		data: JSON.parse(camp.data),
+		hash: form.hash,
+		expiration: form.expiration,
+		public: form.public,
+		data: JSON.parse(form.data),
 	});
 }
 
@@ -86,13 +91,13 @@ async function update(request, response) {
 			values[k] = request.body[k];
 	}
 
-	let camp;
+	let form;
 	try {
 		if (user.admin)
-			camp = await db.update('forms', values, 'hash = ?',
+			form = await db.update('forms', values, 'hash = ?',
 				request.params.hash);
 		else
-			camp = await db.update('forms', values,
+			form = await db.update('forms', values,
 				'hash = ? AND user_id = ?',
 				request.params.hash, user.id);
 	} catch(e) {
@@ -100,21 +105,21 @@ async function update(request, response) {
 		return response.status(400).send({error: 'DB update error'});
 	}
 
-	if (!camp.id) {
+	if (!form.id) {
 		return response.status(404).end();
 	}
 
 	//TODO: ?
-	// const camp = await db.get(`
+	// const form = await db.get(`
 	// 	SELECT * FROM forms
 	// 	WHERE hash = ?`,
 	// 	request.params.hash);
 
 	response.send({
-		hash: camp.hash,
-		expiration: camp.expiration,
-		public: camp.public,
-		data: JSON.parse(camp.data),
+		hash: form.hash,
+		expiration: form.expiration,
+		public: form.public,
+		data: JSON.parse(form.data),
 	});
 }
 
@@ -132,36 +137,41 @@ async function feedbacks(request, response) {
 		return response.status(400).send({last_id: 'must be an int'});
 	}
 
-	const camps = await db.all(`
+	const forms = await db.all(`
 		SELECT * FROM feedbacks
 		WHERE form_hash = ? AND id < COALESCE(?, 9e999)
 		ORDER BY id DESC LIMIT ?`,
 		request.params.hash, lastID, 50);
 
-	response.send(camps);
+	response.send(forms);
 }
 
-// TODO: allow anoymous feedback?
+// TODO: allow anoymous feedback!
 async function submitFeedback(request, response) {
-	let user
+	let user;
 	try {
 		user = await users.checkCookie(request, response);
 	} catch(e) { }
 
-	const sqlResp = await db.run(`
-		INSERT INTO forms (submitter_id, form_hash, data)
-		VALUES (?,?,?)`,
-		user && user.id, request.params.hash, request.body.data);
+	let sqlResp;
+	try {
+		sqlResp = await db.run(`
+			INSERT INTO forms (submitter_id, form_hash, data)
+			VALUES (?,?,?)`,
+			user && user.id, request.params.hash, request.body.data);
+	} catch(e) {
+		//TODO:
+	}
 
-	const camp = await db.get(
+	const form = await db.get(
 		'SELECT * FROM feedbacks WHERE id = ?',
-		sqlResp.stmt.lastID)
+		sqlResp.stmt.lastID);
 
 	response.send({
-		id: camp.id,
-		user_id: camp.user_id,
-		form_hash: camp.form_hash,
-		time: camp.expiration,
-		data: JSON.parse(camp.data),
+		id: form.id,
+		user_id: form.user_id,
+		form_hash: form.form_hash,
+		time: form.expiration,
+		data: JSON.parse(form.data),
 	});
 }
