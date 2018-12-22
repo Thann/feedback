@@ -67,6 +67,7 @@ describe('Forms API', function() {
 			.expect(200, {
 				hash: /\w{14}/,
 				public: true,
+				feedbacks: 0,
 				owner: 'admin',
 				expiration: null,
 				data: {name: 'sweet'},
@@ -107,6 +108,7 @@ describe('Forms API', function() {
 			.expect(200, {
 				hash: /\w{14}/,
 				public: false,
+				feedbacks: 0,
 				owner: 'admin',
 				expiration: null,
 				data: {name: 'brah'},
@@ -120,6 +122,7 @@ describe('Forms API', function() {
 			.expect(200, {
 				hash: /\w{14}/,
 				public: false,
+				feedbacks: 0,
 				owner: 'form_dummy',
 				expiration: null,
 				data: {name: 'dummys'},
@@ -134,6 +137,7 @@ describe('Forms API', function() {
 			.expect(200, {
 				hash: /\w{14}/,
 				public: true,
+				feedbacks: 0,
 				owner: 'admin',
 				expiration: /[\d\-: ]+/,
 				data: {name: 'dude'},
@@ -151,6 +155,7 @@ describe('Forms API', function() {
 			.expect(200, {
 				hash: /\w{14}/,
 				public: true,
+				feedbacks: 0,
 				owner: 'form_dummy',
 				expiration: /[\d\-: ]+/,
 				data: {'': ''},
@@ -248,6 +253,7 @@ describe('Forms API', function() {
 		});
 
 		it('index', async function() {
+			this.dform.feedbacks = 1;
 			await agent.get('/forms')
 				.expect(200, [this.dform, this.form]);
 		});
@@ -269,6 +275,7 @@ describe('Forms API', function() {
 				.expect(200, {
 					hash: /\w{14}/,
 					public: false,
+					feedbacks: 1,
 					owner: 'form_dummy',
 					expiration: null,
 					data: {name: 'brah'},
@@ -283,6 +290,7 @@ describe('Forms API', function() {
 				.expect(200, {
 					hash: /\w{14}/,
 					public: true,
+					feedbacks: 1,
 					owner: 'form_dummy',
 					expiration: /[\d\-: ]+/,
 					data: {'': ''},
@@ -396,6 +404,7 @@ describe('Forms API', function() {
 				.expect(200, {
 					hash: /\w{14}/,
 					public: true,
+					feedbacks: 0,
 					owner: 'form_dummy',
 					expiration: null,
 					data: {'': ''},

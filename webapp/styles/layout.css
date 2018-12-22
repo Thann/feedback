@@ -40,6 +40,7 @@ body {
 	}
 
 	input,
+	textarea,
 	.btn-default {
 		color: #4C78D0;
 		&:hover { color: #2c54a5; }
@@ -58,7 +59,7 @@ body {
 	flex: none !important;
 	&.flex { flex: inherit !important; }
 
-	> .panel.panel-default {
+	.panel.panel-default {
 		background-color: rgba(0,0,0,0.01);
 		margin-top: 30px;
 		width: 100%;
@@ -84,6 +85,14 @@ body {
 			table {
 				th,td {
 					padding: 5px;
+				}
+			}
+			ol, ul {
+				margin-bottom: 0;
+				padding-inline-start: inherit;
+
+				li > * {
+					vertical-align: text-top;
 				}
 			}
 		}

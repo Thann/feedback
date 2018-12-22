@@ -38,30 +38,6 @@ module.exports = Backbone.View.extend({
 			</div>
 		</div>
 
-		<div class="doors panel panel-default">
-			<div class="panel-heading" data-toggle="collapse" data-target=".doors .panel-collapse">
-				<div class="panel-title">
-					Doors:
-					<a class="toggle new fa fa-plus"></a>
-				</div>
-			</div>
-			<div class="panel-collapse collapse in">
-				<div class="panel-body">
-					<form rv-show="creatingDoor" >
-						<input type="text" name="name" placeholder="Name" required>
-						<input type="submit" class="new btn btn-default" value="Create">
-						<div class="error" rv-text="doorError"></div>
-					</form>
-					<div rv-each-door="doors">
-						<span rv-text="door:id"></span>
-						<a rv-href="'#/door/' |+ door:id" rv-text="door:name"></a>
-						<span rv-hide="door:available" rv-text="door:token"></span>
-						<span rv-show="door:available" class="fa fa-check-circle"></span>
-					</div>
-				</div>
-			</div>
-		</div>
-
 		<div class="users panel panel-default">
 			<div class="panel-heading" data-toggle="collapse" data-target=".users .panel-collapse">
 				<div class="panel-title">
@@ -80,7 +56,6 @@ module.exports = Backbone.View.extend({
 					<div rv-each-user="users">
 						<a rv-href="'#user/' |+ user:username" rv-text="user:username"></a>
 						<span rv-text="user:password"></span>
-						<span rv-text="user.doors"></span>
 						<a rv-show="user:password |and user:id |gt 1" target="_blank"
 							rv-href="mailto |+ user:username |+ ' ' |+ user:password |+ mail2">
 							[Send Email]
@@ -101,32 +76,12 @@ module.exports = Backbone.View.extend({
 			return Feedback.Router.navigate('', {trigger: true});
 		}
 
-		this.doors = new (Backbone.Collection.extend({
-			url: '/api/v1/doors',
-		}))();
-		this.doors.on('sync', _.bind(function() {
-			if (this.users) {
-				this.users.fetch();
-			}
-			//TODO: render should not be nessicary
-			this.render();
-		}, this));
-		this.doors.fetch();
-
 		this.users = new (Backbone.Collection.extend({
 			url: '/api/v1/users',
 		}))();
-		this.users.on('sync', _.bind(function(coll) {
-			// Turn door numbers into names
-			if (coll.each)
-				coll.each(_.bind(function(user) {
-					user.doors = _.map(user.get('doors'), _.bind(function(d) {
-						return this.doors.findWhere({id: d.id}).get('name');
-					}, this));
-				}, this));
-			//TODO: render should not be nessicary
-			this.render();
-		}, this));
+		//TODO: render should not be nessicary
+		this.listenTo(this.users, 'sync', this.render);
+		this.users.fetch();
 
 		this.privateSettings = new (Backbone.Model.extend({
 			url: '/api/v1/site/private_settings',

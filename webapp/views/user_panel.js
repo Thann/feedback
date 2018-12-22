@@ -60,42 +60,42 @@ module.exports = Backbone.View.extend({
 			</div>
 		</div>
 
-		<div class="doors panel panel-default" rv-hide="user:admin">
-			<div class="panel-heading" data-toggle="collapse" data-target=".doors .panel-collapse">
-				<div class="panel-title">Doors</div>
+		<div class="forms panel panel-default">
+			<div class="panel-heading" data-toggle="collapse" data-target=".forms .panel-collapse">
+				<div class="panel-title">
+					Forms
+					<a href="#create" class="fa fa-plus"></a>
+				</div>
 			</div>
 			<div class="panel-collapse collapse in">
 				<div class="panel-body">
-					<div rv-each-door="doors">
-						<a rv-show="door:allowed" rv-data-id="door:id" rv-class-deny="self:admin">
-							<span rv-text="door:name"></span>
-							<span class="fa fa-check-circle"></span>
-						</a>
-						<a rv-hide="door:allowed" rv-data-id="door:id" rv-class-permit="self:admin">
-							<span rv-text="door:name"></span>
-							<span class="fa fa-ban"></span>
-						</a>
-					</div>
+					<ol>
+						<li rv-each-form="forms">
+							<span rv-text="form:id"></span>
+							<a rv-href="'#' |+ form:hash"
+								rv-text="form:data.name |or form:hash"></a>
+							<span>({ form:feedbacks })</span>
+						</li>
+					</ol>
 				</div>
 			</div>
 		</div>
 
-		<div class="logs panel panel-default">
-			<div class="panel-heading fetch" data-toggle="collapse" data-target=".logs .panel-collapse">
-				<div class="panel-title">Logs</div>
+		<div class="feedbacks panel panel-default">
+			<div class="panel-heading fetch" data-toggle="collapse" data-target=".feedbacks .panel-collapse">
+				<div class="panel-title">Feedbacks</div>
 			</div>
-			<div class="panel-collapse collapse" rv-class-in="logs.length |gt 50">
+			<div class="panel-collapse collapse" rv-class-in="feedbacks.length |gt 50">
 				<div class="panel-body">
-					<div rv-each-log="logs">
-						<span rv-text="log:door"></span> &nbsp;
-						<span rv-text="log:time"></span> &nbsp;
-						<span rv-text="log:method"></span>
-					</div>
+					<a rv-href="'#' |+ feedback:form" rv-each-feedback="feedbacks">
+						<span rv-text="feedback:form"></span> &nbsp;
+						<span rv-text="feedback:created"></span> &nbsp;
+					</a>
 				</div>
 				<div class="panel-footer">
 					<input type="submit" value="More" class="more btn btn-default"
-						rv-enabled="logs.hasMore">
-					<div class="error" rv-text="logsError"></div>
+						rv-enabled="feedbacks.hasMore">
+					<div class="error" rv-text="feedbacksError"></div>
 				</div>
 			</div>
 		</div>
@@ -105,10 +105,8 @@ module.exports = Backbone.View.extend({
 		'click .fa-random.password': 'scramblePassword',
 		'click .logout': 'logout',
 		'click .delete': 'delUser',
-		'click .permit': 'permit',
-		'click .deny': 'deny',
-		'click .logs .toggle': 'toggleLogs',
-		'click .logs .more': 'moreLogs',
+		'click .feedbacks .toggle': 'toggleFeedbacks',
+		'click .feedbacks .more': 'moreFeedbacks',
 	},
 	initialize: function() {
 		const username = Feedback.Router.args[0];
@@ -121,20 +119,20 @@ module.exports = Backbone.View.extend({
 			}});
 		}
 
-		// this.doors = new (Backbone.Collection.extend({
-		// 	url: '/api/v1/doors',
-		// }))();
-		// this.doors.fetch();
+		this.forms = new (Backbone.Collection.extend({
+			url: '/api/v1/forms',
+		}))();
+		this.forms.fetch();
 
-		// this.logs = new (Backbone.Collection.extend({
-		// 	hasMore: true,
-		// 	url: function() {
-		// 		const lastID = this.models.length &&
-		// 			this.models[this.models.length-1].id || '';
-		// 		return '/api/v1/users/'+username+'/logs?last_id='+lastID;
-		// 	},
-		// }))();
-		// this.moreLogs();
+		this.feedbacks = new (Backbone.Collection.extend({
+			hasMore: true,
+			url: function() {
+				const lastID = this.models.length &&
+					this.models[this.models.length-1].id || '';
+				return '/api/v1/users/'+username+'/feedbacks?last_id='+lastID;
+			},
+		}))();
+		this.moreFeedbacks();
 
 		//TODO: forms and feedbacks
 
@@ -142,8 +140,8 @@ module.exports = Backbone.View.extend({
 		this.scope = {
 			me,
 			user: this.user,
-			// logs: this.logs,
-			// doors: this.doors,
+			forms: this.forms,
+			feedbacks: this.feedbacks,
 			self: Feedback.User,
 			pwType: me ? 'password': 'text',
 			showCurrent: !this.user.get('requires_reset') && me,
@@ -178,15 +176,17 @@ module.exports = Backbone.View.extend({
 			this.logs.hasMore = true;
 		}
 	},
-	toggleLogs: function() {
-		this.logs.open = !this.logs.open;
+	toggleFeedbacks: function() {
+		this.Feedbacks.open = !this.Feedbacks.open;
 	},
-	moreLogs: function() {
-		this.logs.fetch({ add: true, remove: false,
-			success: _.bind(function(coll, newLogs) {
+	moreFeedbacks: function() {
+		this.feedbacks.fetch({ add: true, remove: false,
+			success: (coll, newLogs) => {
 				if (newLogs.length < 50)
-					this.logs.hasMore = false;
-			}, this),
+					coll.hasMore = false;
+				//TODO: should not be needed
+				this.render();
+			},
 		});
 	},
 	logout: function() {

@@ -26,6 +26,7 @@ module.exports = Backbone.View.extend({
 		admin: function() { return new Feedback.Views.AdminPanel(); },
 		login: function() { return new Feedback.Views.LoginPanel(); },
 		create: function() { return new Feedback.Views.CreatePanel(); },
+		feedbacks: function() { return new Feedback.Views.FeedbacksPanel(); },
 		header: function() { return new Feedback.Views.Header(); },
 		sidebar: function() { return new Feedback.Views.Sidebar(); },
 	},
@@ -39,30 +40,37 @@ module.exports = Backbone.View.extend({
 				'': 'login',
 				'login': 'login',
 				'admin': 'admin',
+				//TODO: replace "create" with "form" edit mode
 				'create': 'create',
 				'user/:id': 'user',
+				':form/feedback': 'feedbacks',
 				'*notFound': 'form',
 			},
+			unauthRoutes: ['form', 'login'],
 			execute: function(cb, args, name) {
 				this.args = args;
-				if (!layout.loading && !Feedback.User.isAuthed) {
+				if (!layout.loading && !Feedback.User.isAuthed
+						&& this.unauthRoutes.indexOf(name) < 0) {
 					this.navigate('login', {trigger: true});
 				} else if (!Feedback.Router.name
 						&& layout.subviewCreators[name]) {
+					this.lastRoute = name;
 					layout.render(name);
 				} else {
 					// route not found
 					this.navigate('', {trigger: true});
 				}
 			},
+			lastRouteUnauthed: function() {
+				return this.unauthRoutes.indexOf(this.lastRoute) < 0;
+			},
 		}))();
 
 		Feedback.User = new UserModel();
 		Feedback.User.on('relog', function(loggedIn) {
-			if (loggedIn) {
+			if (loggedIn || Feedback.Router.lastRouteUnauthed()) {
 				layout.render();
 			} else {
-				//TODO: unauth feedbacks
 				Feedback.Router.navigate('login', {trigger: false});
 				layout.render('login');
 			}

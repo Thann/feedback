@@ -1,4 +1,3 @@
-#TODO: use rpio which is faster and can build on node 10+
 FROM node:alpine AS base
 EXPOSE 3000
 ENTRYPOINT ["node"]

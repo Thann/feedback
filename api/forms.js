@@ -25,18 +25,21 @@ async function index(request, response) {
 		return response.status(400).send({last_id: 'must be an int'});
 	}
 
+	// TODO: cache
 	const forms = await db.all(`
-		SELECT forms.*, users.username FROM forms
+		SELECT forms.*, users.username, COUNT(feedbacks.id) as fbs FROM forms
 		LEFT JOIN users ON forms.user_id = users.id
-		WHERE public = 1
+		LEFT JOIN feedbacks ON forms.hash = feedbacks.form_hash
+		WHERE public != 0
 			AND forms.id < COALESCE(?, 9e999)
 			AND (expiration IS NULL OR expiration > CURRENT_TIMESTAMP)
 			AND users.deleted_at IS NULL
-		ORDER BY id DESC LIMIT ?`,
+		GROUP BY forms.id ORDER BY id DESC LIMIT ?`,
 		lastID, 50);
 
 	response.send(forms.map(form => ({
 		hash: form.hash,
+		feedbacks: form.fbs,
 		owner: form.username,
 		expiration: form.expiration,
 		data: JSON.parse(form.data),
@@ -62,6 +65,7 @@ async function create(request, response) {
 
 	response.send({
 		hash,
+		feedbacks: 0,
 		owner: user.username,
 		data: JSON.parse(data),
 		expiration: request.body.expiration || null,
@@ -72,16 +76,18 @@ async function create(request, response) {
 async function read(request, response) {
 	// TODO: user_deleted_at ?
 	const form = await db.get(`
-		SELECT forms.*, users.username FROM forms
+		SELECT forms.*, users.username, COUNT(feedbacks.id) AS fbs FROM forms
 		LEFT JOIN users ON forms.user_id = users.id
+		LEFT JOIN feedbacks ON forms.hash = feedbacks.form_hash
 		WHERE hash = ?`,
 		request.params.hash);
 
-	if (!form) {
+	if (!form.id) {
 		return response.status(404).end();
 	}
 	response.send({
 		hash: form.hash,
+		feedbacks: form.fbs,
 		owner: form.username,
 		expiration: form.expiration,
 		data: JSON.parse(form.data),
@@ -121,13 +127,15 @@ async function update(request, response) {
 	}
 
 	const form = await db.get(`
-		SELECT forms.*, users.username FROM forms
+		SELECT forms.*, users.username, COUNT(feedbacks.id) AS fbs FROM forms
 		LEFT JOIN users ON forms.user_id = users.id
+		LEFT JOIN feedbacks ON forms.hash = feedbacks.form_hash
 		WHERE hash = ?`,
 		request.params.hash);
 
 	response.send({
 		hash: form.hash,
+		feedbacks: form.fbs,
 		owner: form.username,
 		expiration: form.expiration,
 		data: JSON.parse(form.data),
@@ -185,7 +193,6 @@ async function feedbacks(request, response) {
 	})));
 }
 
-// TODO: allow anoymous feedback!
 async function submitFeedback(request, response) {
 	const user = await users.checkCookie(request, response, true);
 	let data = request.body.data;
