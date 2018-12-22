@@ -15,18 +15,19 @@ module.exports = function(app) {
 	app.   get('/users/:username', read);
 	app. patch('/users/:username', update);
 	app.delete('/users/:username', remove);
-	app.delete('/users/:username/forms', forms);
-	app.delete('/users/:username/feedbacks', feedbacks);
+	app.   get('/users/:username/forms', forms);
+	app.   get('/users/:username/feedbacks', feedbacks);
 };
 
 // Returns the user that owns the session cookie
-const checkCookie = async function(request, response) {
+const checkCookie = async function(request, response, allowAnon) {
 	let sesh;
 	try {
 		sesh = cookie.parse(request.headers.cookie).Session;
 		// console.log("GET:", request.path)
 	} catch (e) {
 		// console.warn("ERROR Processing Cookie:", e);
+		if (allowAnon) return;
 		response.clearCookie('Session');
 		response.status(401).send({error: 'session cookie malformed'});
 		throw new errors.HandledError();
@@ -36,6 +37,7 @@ const checkCookie = async function(request, response) {
 		AND datetime(session_created, '+1 month') >= CURRENT_TIMESTAMP`,
 		sesh);
 	if (!user || sesh.length < 5) {
+		if (allowAnon) return;
 		response.clearCookie('Session');
 		response.status(401).end();
 		throw new errors.HandledError();
@@ -201,7 +203,7 @@ async function read(request, response) {
 	}
 
 	const usr = await db.get(`
-		SELECT * FROM users WHERE username = ?`,
+		SELECT * FROM users WHERE username = ? AND deleted_at IS NULL`,
 		request.params.username);
 
 	if (!usr) {
@@ -232,10 +234,6 @@ async function update(request, response) {
 	if (!sameUser && !user.admin) {
 		return response.status(403)
 			.send({error: 'can only update your own info'});
-	}
-	if (!sameUser && request.body.keycode !== undefined) {
-		return response.status(403)
-			.send({keycode: 'can only update your own keycode'});
 	}
 
 	if (!user.admin && request.body.admin) {

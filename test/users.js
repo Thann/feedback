@@ -109,9 +109,6 @@ describe('Users API', function() {
 
 	it('update', async function() {
 		await agent.patch('/users/Dummy')
-			.send({keycode: 2})
-			.expect(403, {keycode: 'can only update your own keycode'});
-		await agent.patch('/users/Dummy')
 			.send({password: 'dummy'})
 			.expect(200, {
 				id: 2,
@@ -162,15 +159,14 @@ describe('Users API', function() {
 			.expect(200);
 		await agent.get('/users/delete_me')
 			.expect(200, {
-				id: 3,
+				id: 4,
 				admin: false,
 				username: 'delete_me',
 				password: /\w{14}/,
-				//TODO: test fails!
 				requires_reset: true,
 			});
-		// await agent.delete('/users/Dummy')
-		// 	.expect(204);
+		await agent.delete('/users/Dummy')
+			.expect(204);
 		// await agent.get('/users/me')
 		// 		.expect(401);
 	});

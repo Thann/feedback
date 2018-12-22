@@ -15,7 +15,6 @@ describe('Forms API', function() {
 			await agent.post('/forms')
 				.send({
 					public: true,
-					expiration: '2018-12-28',
 					data: '{"name":"dude"}',
 				}).expect(200)
 		).body;
@@ -24,10 +23,30 @@ describe('Forms API', function() {
 			await agent.post('/forms')
 				.send({
 					public: false,
-					expiration: '2018-12-28',
 					data: '{"name":"secret"}',
 				}).expect(200)
 		).body;
+		// create dummy user + form
+		await agent.post('/users')
+			.send({
+				username: 'form_dummy',
+				password: 'form_dummy'})
+			.expect(200);
+		await agent.post('/auth')
+			.send({username: 'form_dummy', password: 'form_dummy'})
+			.expect(200);
+		this.dform = (
+			await agent.post('/forms')
+				.send({
+					public: true,
+					data: '{"":""}',
+				})
+				.expect(200)
+		).body;
+		// auth as admin
+		await agent.post('/auth')
+			.send({username: 'admin', password: 'admin'})
+			.expect(200);
 	});
 
 	it('create', async function() {
@@ -42,13 +61,14 @@ describe('Forms API', function() {
 		await agent.post('/forms')
 			.send({
 				public: true,
-				expiration: '2018-12-28',
-				data: '{"name":"sweet"}',
+				expiration: null,
+				data: {name: 'sweet'},
 			})
 			.expect(200, {
 				hash: /\w{14}/,
 				public: true,
-				expiration: '2018-12-28',
+				owner: 'admin',
+				expiration: null,
 				data: {name: 'sweet'},
 			});
 	});
@@ -56,145 +76,157 @@ describe('Forms API', function() {
 	it('read', async function() {
 		await agent.get('/forms/' + this.form.hash)
 			.expect(200, this.form);
-		await agent.get('/forms/666')
+		await agent.get('/forms/missing')
 			.expect(404);
 		await agent.get('/forms/' + this.private.hash)
 			.expect(200, this.private);
+		await agent.get('/forms/' + this.dform.hash)
+			.expect(200, this.dform);
 	});
 
 	it('index', async function() {
 		await agent.get('/forms')
-			.expect(200, [this.form]);
+			.expect(200, [this.dform, this.form]);
+		await agent.delete('/forms/' + this.form.hash)
+			.expect(204);
+		await agent.get('/forms')
+			.expect(200, [this.dform]);
 	});
 
 	it('update', async function() {
-		console.log("FFF", this.form)
-		await agent.patch('/doors/1')
-			.expect(400, {name: 'required'});
-		await agent.patch('/doors/1')
-			.send({name: 'front'})
+		await agent.patch('/forms/' + this.form.hash)
+			.expect(400, {error: 'nothing to update'});
+		await agent.patch('/forms/missing')
+			.send({public: false})
+			.expect(404);
+		await agent.patch('/forms/' + this.form.hash)
+			.send({
+				public: false,
+				data: {name: 'brah'},
+			})
 			.expect(200, {
-				id: 1,
-				name: 'front',
-				token: /\w+/,
+				hash: /\w{14}/,
+				public: false,
+				owner: 'admin',
+				expiration: null,
+				data: {name: 'brah'},
+			});
+		// admins can update others
+		await agent.patch('/forms/' + this.dform.hash)
+			.send({
+				public: false,
+				data: {name: 'dummys'},
+			})
+			.expect(200, {
+				hash: /\w{14}/,
+				public: false,
+				owner: 'form_dummy',
+				expiration: null,
+				data: {name: 'dummys'},
 			});
 	});
 
 	it('delete', async function() {
-		await agent.post('/doors')
-			.send({name: 'delete_me'})
-			.expect(200, {
-				id: 2,
-				name: 'delete_me',
-				token: /\w+/,
-			});
-		await agent.delete('/doors/2')
+		await agent.delete('/forms/' + this.form.hash)
 			.expect(204, '');
-		await agent.delete('/users/missing')
+		// Not actually deleted, just expired
+		await agent.get('/forms/' + this.form.hash)
+			.expect(200, {
+				hash: /\w{14}/,
+				public: true,
+				owner: 'admin',
+				expiration: /[\d\-: ]+/,
+				data: {name: 'dude'},
+			});
+		await agent.get('/forms')
+			.expect(200, [this.dform]);
+		await agent.delete('/forms/' + this.form.hash)
+			.expect(404, '');
+		await agent.delete('/forms/missing')
 			.expect(404);
+		await agent.delete('/forms/' + this.dform.hash)
+			.expect(204, '');
+		// Not actually deleted, just expired
+		await agent.get('/forms/' + this.dform.hash)
+			.expect(200, {
+				hash: /\w{14}/,
+				public: true,
+				owner: 'form_dummy',
+				expiration: /[\d\-: ]+/,
+				data: {'': ''},
+			});
+		await agent.get('/forms')
+			.expect(200, []);
 	});
 
-	it('permit', async function() {
-		await agent.post('/doors/1/permit/missing')
-			.expect(404, { error: "user doesn't exist" });
-		await agent.post('/doors/5/permit/admin')
-			.expect(404, { error: "door doesn't exist" });
-		await agent.post('/doors/1/permit/admin')
-			.expect(200, {
-				door_id: 1,
-				username: 'admin',
-			});
-		await agent.delete('/doors/1/permit/admin')
-			.expect(204);
-		await agent.post('/doors/1/permit/admin')
+	it('feedbacks', async function() {
+		// create feedbacks
+		await agent.post('/forms/' + this.form.hash + '/feedbacks')
 			.send({
-				// creation: '', //TODO:
-				// expiration: '', //TODO:
-				constraints: 'ip:192.168.1.1/30' })
+				data: {something: 'arbitrary'},
+			})
 			.expect(200, {
-				door_id: 1,
+				id: 1,
 				username: 'admin',
-				// expiration: '',
-				constraints: 'ip:192.168.1.1/30',
+				created: /[\d\-: ]+/,
+				form: this.form.hash,
+				data: {something: 'arbitrary'},
 			});
-		await agent.post('/doors/1/permit/admin')
+		await agent.post('/forms/' + this.form.hash + '/feedbacks')
+			.send({
+				data: {something: 'different'},
+			})
 			.expect(200, {
-				door_id: 1,
+				id: 2,
 				username: 'admin',
+				created: /[\d\-: ]+/,
+				form: this.form.hash,
+				data: {something: 'different'},
 			});
-	});
-
-	it('deny', async function() {
-		await agent.delete('/doors/1/permit/missing')
-			.expect(404, { error: "door doesn't permit user" });
-		await agent.delete('/doors/5/permit/admin')
-			.expect(404, { error: "door doesn't permit user" });
-		await agent.post('/doors/1/permit/admin').expect(200);
-		await agent.delete('/doors/1/permit/admin')
-			.expect(204, '');
-		await agent.delete('/doors/1/permit/admin')
-			.expect(404, { error: "door doesn't permit user" });
-	});
-
-	it('open', async function() {
-		await agent.post('/doors/1/open')
-			.expect(204, '');
-	});
-
-	it('logs', async function() {
-		await agent.post('/doors/1/open').expect(204);
-		await agent.get('/doors/1/logs')
-			.expect(200, [{
-				id: 1,
-				door_id: 1,
-				user_id: 1,
+		await agent.post('/forms/' + this.dform.hash + '/feedbacks')
+			.send({
+				data: {something: 'else'},
+			})
+			.expect(200, {
+				id: 3,
 				username: 'admin',
-				method: 'web:::ffff:127.0.0.1',
-				deleted_at: null,
-				time: /[\d\-: ]+/,
-			}]);
-		await agent.post('/doors/1/open').expect(204);
-		await agent.get('/doors/1/logs?last_id=2')
-			.expect(200, [{
-				id: 1,
-				door_id: 1,
-				user_id: 1,
-				username: 'admin',
-				method: 'web:::ffff:127.0.0.1',
-				deleted_at: null,
-				time: /[\d\-: ]+/,
-			}]);
-		await agent.get('/doors/1/logs?last_id=x')
+				created: /[\d\-: ]+/,
+				form: this.dform.hash,
+				data: {something: 'else'},
+			});
+		// list feedbacks
+		await agent.get('/forms/' + this.form.hash + '/feedbacks')
 			.expect(200, [{
 				id: 2,
-				door_id: 1,
-				user_id: 1,
 				username: 'admin',
-				method: 'web:::ffff:127.0.0.1',
-				deleted_at: null,
-				time: /[\d\-: ]+/,
-			}, {
-				id: 1,
-				door_id: 1,
-				user_id: 1,
-				username: 'admin',
-				method: 'web:::ffff:127.0.0.1',
-				deleted_at: null,
-				time: /[\d\-: ]+/,
+				created: /[\d\-: ]+/,
+				form: this.form.hash,
+				data: {something: 'different'},
 			}]);
-		await agent.get('/doors/2/logs')
-			.expect(200, []);
+		await agent.get('/forms/' + this.dform.hash + '/feedbacks')
+			.expect(200, [{
+				id: 3,
+				username: 'admin',
+				created: /[\d\-: ]+/,
+				form: this.dform.hash,
+				data: {something: 'else'},
+			}]);
 	});
 
 	// ===================================
 	describe('as an under-privileged user', function() {
 		beforeEach('auth', async function() {
-			await agent.post('/users')
+			await agent.post('/forms/' + this.dform.hash + '/feedbacks')
 				.send({
-					// admin: 0,
-					username: 'form_dummy',
-					password: 'form_dummy'})
-				.expect(200);
+					data: {something: 'arbitrary'},
+				})
+				.expect(200, {
+					id: 1,
+					username: 'admin',
+					created: /[\d\-: ]+/,
+					form: this.dform.hash,
+					data: {something: 'arbitrary'},
+				});
 			await agent.post('/auth')
 				.send({username: 'form_dummy', password: 'form_dummy'})
 				.expect(200);
@@ -209,7 +241,7 @@ describe('Forms API', function() {
 		it('read', async function() {
 			await agent.get('/forms/' + this.form.hash)
 				.expect(200, this.form);
-			await agent.get('/forms/666')
+			await agent.get('/forms/missing')
 				.expect(404);
 			await agent.get('/forms/' + this.private.hash)
 				.expect(200, this.private);
@@ -217,67 +249,107 @@ describe('Forms API', function() {
 
 		it('index', async function() {
 			await agent.get('/forms')
-				.expect(200, [this.form]);
+				.expect(200, [this.dform, this.form]);
 		});
 
 		it('update', async function() {
-			await agent.patch('/doors/1')
-				.expect(400, {name: 'required'});
-			await agent.patch('/doors/1')
-				.send({name: 'bad'})
-				.expect(403);
-			await agent.patch('/doors/2')
-				.send({name: 'bad'})
-				.expect(403);
+			await agent.patch('/forms/missing')
+				.send({public: false})
+				.expect(404);
+			await agent.patch('/forms/' + this.form.hash)
+				.send({public: false})
+				.expect(404);
+			await agent.patch('/forms/' + this.dform.hash)
+				.expect(400, {error: 'nothing to update'});
+			await agent.patch('/forms/' + this.dform.hash)
+				.send({
+					public: false,
+					data: {'name': 'brah'},
+				})
+				.expect(200, {
+					hash: /\w{14}/,
+					public: false,
+					owner: 'form_dummy',
+					expiration: null,
+					data: {name: 'brah'},
+				});
 		});
 
 		it('delete', async function() {
-			await agent.delete('/doors/1')
-				.expect(403);
-			await agent.delete('/users/missing')
-				.expect(403);
+			await agent.delete('/forms/' + this.dform.hash)
+				.expect(204, '');
+			// Not actually deleted, just expired
+			await agent.get('/forms/' + this.dform.hash)
+				.expect(200, {
+					hash: /\w{14}/,
+					public: true,
+					owner: 'form_dummy',
+					expiration: /[\d\-: ]+/,
+					data: {'': ''},
+				});
+			await agent.get('/forms')
+				.expect(200, [this.form]);
+			await agent.delete('/forms/' + this.form.hash)
+				.expect(404, '');
+			await agent.delete('/forms/missing')
+				.expect(404);
 		});
 
 		it('feedbacks', async function() {
+			// create feedbacks
+			await agent.post('/forms/' + this.form.hash + '/feedbacks')
+				.send({
+					data: {something: 'arbitrary'},
+				})
+				.expect(200, {
+					id: 2,
+					username: 'form_dummy',
+					created: /[\d\-: ]+/,
+					form: this.form.hash,
+					data: {something: 'arbitrary'},
+				});
+			await agent.post('/forms/' + this.form.hash + '/feedbacks')
+				.send({
+					data: {something: 'different'},
+				})
+				.expect(200, {
+					id: 3,
+					username: 'form_dummy',
+					created: /[\d\-: ]+/,
+					form: this.form.hash,
+					data: {something: 'different'},
+				});
+			await agent.post('/forms/' + this.dform.hash + '/feedbacks')
+				.send({
+					data: {something: 'else'},
+				})
+				.expect(200, {
+					id: 4,
+					username: 'form_dummy',
+					created: /[\d\-: ]+/,
+					form: this.dform.hash,
+					data: {something: 'else'},
+				});
+			// list feedbacks
+			await agent.get('/forms/' + this.form.hash + '/feedbacks')
+				.expect(403);
+			await agent.get('/forms/' + this.dform.hash + '/feedbacks')
+				.expect(200, [
+					{
+						id: 4,
+						username: 'form_dummy',
+						created: /[\d\-: ]+/,
+						form: this.dform.hash,
+						data: {something: 'else'},
+					}, {
+						id: 1,
+						username: 'admin',
+						created: /[\d\-: ]+/,
+						form: this.dform.hash,
+						data: {something: 'arbitrary'},
+					},
+				]);
 		});
-
-		it('submit', async function() {
-		});
-		// it('permit', async function() {
-		// 	await agent.post('/doors/1/permit/door_dummy')
-		// 		.expect(403);
-		// 	await agent.post('/doors/1/permit/admin')
-		// 		.expect(403);
-		// 	await agent.post('/doors/2/permit/door_dummy')
-		// 		.expect(403);
-		// });
-
-		// it('deny', async function() {
-		// 	await agent.delete('/doors/1/permit/door_dummy')
-		// 		.expect(403);
-		// 	await agent.delete('/doors/1/permit/admin')
-		// 		.expect(403);
-		// });
-
-		// it('open', async function() {
-		// 	await agent.post('/doors/1/open')
-		// 		.expect(422);
-		// 	await agent.patch('/users/door_dummy')
-		// 		.send({password: 'door_dummy'})
-		// 		.expect(200);
-		// 	await agent.post('/auth')
-		// 		.send({username: 'door_dummy', password: 'door_dummy'})
-		// 		.expect(200);
-		// 	await agent.post('/doors/1/open')
-		// 		.expect(204, '');
-		// 	await agent.post('/doors/2/open')
-		// 		.expect(403);
-		// });
-
-		// it('logs', async function() {
-		// 	await agent.get('/doors/1/logs')
-		// 		.expect(403);
-		// });
 	});
 
 	describe('as an un-authenticated user', function() {
@@ -295,7 +367,7 @@ describe('Forms API', function() {
 		it('read', async function() {
 			await agent.get('/forms/'+this.form.hash)
 				.expect(200, this.form);
-			await agent.get('/doors/666')
+			await agent.get('/forms/missing')
 				.expect(404);
 			await agent.get('/forms/' + this.private.hash)
 				.expect(200, this.private);
@@ -303,31 +375,99 @@ describe('Forms API', function() {
 
 		it('index', async function() {
 			await agent.get('/forms')
-				.expect(200, [this.form]);
+				.expect(200, [this.dform, this.form]);
 		});
 
 		it('update', async function() {
-			await agent.patch('/doors/1')
-				.expect(400, {name: 'required'});
-			await agent.patch('/doors/1')
-				.send({name: 'bad'})
-				.expect(403);
-			await agent.patch('/doors/2')
-				.send({name: 'bad'})
-				.expect(403);
+			await agent.patch('/forms/missing')
+				.expect(401);
+			await agent.patch('/forms/missing')
+				.send({public: false})
+				.expect(401);
+			await agent.patch('/forms/' + this.form.hash)
+				.send({public: false})
+				.expect(401);
 		});
 
 		it('delete', async function() {
-			await agent.delete('/doors/1')
-				.expect(403);
-			await agent.delete('/users/missing')
-				.expect(403);
+			await agent.delete('/forms/' + this.dform.hash)
+				.expect(401);
+			await agent.get('/forms/' + this.dform.hash)
+				.expect(200, {
+					hash: /\w{14}/,
+					public: true,
+					owner: 'form_dummy',
+					expiration: null,
+					data: {'': ''},
+				});
+			await agent.get('/forms')
+				.expect(200, [this.dform, this.form]);
+			await agent.delete('/forms/' + this.form.hash)
+				.expect(401);
+			await agent.delete('/forms/missing')
+				.expect(401);
 		});
 
 		it('feedbacks', async function() {
-		});
-
-		it('submit', async function() {
+			// create feedbacks
+			await agent.post('/forms/' + this.form.hash + '/feedbacks')
+				.send({
+					data: {something: 'arbitrary'},
+				})
+				.expect(200, {
+					id: 1,
+					username: null,
+					created: /[\d\-: ]+/,
+					form: this.form.hash,
+					data: {something: 'arbitrary'},
+				});
+			await agent.post('/forms/' + this.form.hash + '/feedbacks')
+				.send({
+					data: {something: 'different'},
+				})
+				.expect(200, {
+					id: 2,
+					username: null,
+					created: /[\d\-: ]+/,
+					form: this.form.hash,
+					data: {something: 'different'},
+				});
+			await agent.post('/forms/' + this.dform.hash + '/feedbacks')
+				.send({
+					data: {something: 'else'},
+				})
+				.expect(200, {
+					id: 3,
+					username: null,
+					created: /[\d\-: ]+/,
+					form: this.dform.hash,
+					data: {something: 'else'},
+				});
+			// list feedbacks
+			await agent.get('/forms/' + this.form.hash + '/feedbacks')
+				.expect(401);
+			await agent.get('/forms/' + this.dform.hash + '/feedbacks')
+				.expect(401);
+			// admin can list feedbacks
+			await agent.post('/auth')
+				.send({username: 'admin', password: 'admin'})
+				.expect(200);
+			await agent.get('/forms/' + this.form.hash + '/feedbacks')
+				.expect(200, [
+					{
+						id: 2,
+						username: null,
+						created: /[\d\-: ]+/,
+						form: this.form.hash,
+						data: {something: 'different'},
+					}, {
+						id: 1,
+						username: null,
+						created: /[\d\-: ]+/,
+						form: this.form.hash,
+						data: {something: 'arbitrary'},
+					},
+				]);
 		});
 	});
 });
