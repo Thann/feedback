@@ -13,7 +13,7 @@ module.exports = Backbone.View.extend({
 			</p>
 			<h4 rv-hide="form.loading">
 				ERROR: No form with this id!
-				<a rv-show="user.isAuthed" href="#">
+				<a rv-show="user.isAuthed" href="#create">
 					create a new one
 				</a>
 				<a rv-hide="user.isAuthed" href="#">
@@ -34,7 +34,7 @@ module.exports = Backbone.View.extend({
 					</div>
 				</div>
 				<div class="panel-body">
-					<p>{ entry.description }</p>
+					<p rv-show="entry.description">{ entry.description }</p>
 					<ol rv-show="entry.options" rv-type="entry.type |or 'A'">
 						<li class="form-check" rv-each-option="entry.options">
 							<input class="form-check-input" type="checkbox"
@@ -42,18 +42,17 @@ module.exports = Backbone.View.extend({
 								rv-id="entry.index |+ '.' |+ $index">
 							<label class="form-check-label"
 								rv-for="entry.index |+ '.' |+ $index">
-								{ option }
+								{ option  |or '&nbsp;'}
 							</label>
 						</li>
 						<li class="form-check check-dummy" rv-show="entry.other">
 							<input class="form-check-input" type="checkbox">
 							<textarea rv-name="entry.index"
-								placeholder="Type your answer here..."></textarea>
+								rv-placeholder="entry.other |or 'Type your answer here...'"></textarea>
 						</li>
 					</ol>
-					<textarea rv-if="entry.options |length |lt 1"
-						rv-name="entry.index"
-						placeholder="Type your answer here..."></textarea>
+					<textarea rv-if="entry.options |length |or 0 |lt 1" rv-name="entry.index" rows="3"
+						rv-placeholder="entry.other |or 'Type your answer here...'"></textarea>
 				</div>
 			</div>
 			<div rv-show="error" class="form-group alert alert-danger">

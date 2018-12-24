@@ -39,11 +39,22 @@ body {
 		font-weight: bold;
 	}
 
-	input,
-	textarea,
 	.btn-default {
 		color: #4C78D0;
 		&:hover { color: #2c54a5; }
+	}
+
+	input,
+	textarea {
+		color: inherit;
+		max-width: 100%;
+		border: solid rgba(255,255,255,.3) 1px;
+		background-color: rgba(173,173,173,.1);
+
+		&::placeholder {
+			opacity: 0.75;
+			color: inherit;
+		}
 	}
 }
 

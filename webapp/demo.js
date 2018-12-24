@@ -1,6 +1,101 @@
 // Poison Backbone models & collections to sync mock data
 module.exports = require('./main');
 
+const mockForm = {
+	hash: 'abc123',
+	feedbacks: 3,
+	owner: 'DemoUser',
+	expiration: null,
+	public: true,
+	data: {
+		name: 'Freedom Survey',
+		description: 'What does freedom mean to you?',
+		entries: [
+			{
+				title: 'Which of these are the most important freedoms?',
+				other: 'Other',
+				options: [
+					'Free speech',
+					'Free press',
+					'Freedom of information',
+					'Freedom of movement',
+					'Freedom of assembly',
+					'Software Freedom',
+					'Free Market',
+				],
+			},
+			{
+				title: 'Which of these are the least important freedoms?',
+				other: 'Other',
+				options: [
+					'Free speech',
+					'Free press',
+					'Freedom of information',
+					'Freedom of movement',
+					'Freedom of assembly',
+					'Software Freedom',
+					'Free Market',
+				],
+			},
+			{
+				title: 'How much do you value Software Freedom?',
+				description: 'On a scale from "Steve Jobs" to "Richard Stallman":',
+				type: '1',
+				options: [
+					'Steve Jobs',
+					'',
+					'',
+					'',
+					'Richard Stallman',
+				],
+			},
+			{
+				title: 'Additionl comments',
+				other: ' ',
+			},
+		],
+	},
+};
+
+const mockForm2 = {
+	hash: '456def',
+	public: false,
+	feedbacks: 1,
+	owner: 'admin',
+	data: JSON.parse(module.exports.Views.CreatePanel.prototype.sampleFormData),
+};
+
+const mockSecretForm = {
+	hash: 'super-secret',
+	public: false,
+	feedbacks: 1,
+	owner: 'DemoUser',
+	data: {
+		name: 'secret form',
+		entries: [
+			{
+				title: 'How did you find this form?',
+			},
+		],
+	},
+};
+
+const mockFeedback = {
+	id: 69,
+	form: 'abc123',
+	created: '2018-12-24 06:43:42',
+	username: 'DemoUser',
+	data: {
+		responses: {
+			0: [
+				'other response!',
+			],
+		},
+	},
+	form_creator: 'DemoUser',
+	form_data: mockForm.data,
+};
+
 const MockData = {
 	'site/settings': {
 		orgName: 'DemoOrg',
@@ -11,39 +106,32 @@ const MockData = {
 		admin: 1,
 		username: 'DemoUser',
 	},
-	'doors': [
-		{
-			id:1,
-			name: 'Front Door',
-			token: 'c56b323a155abeffdd0ca77e6916198b53e874493e85c78388ce35e3688322cc',
-			available : true,
-		},
-	],
-	'doors/1/open': {},
 	'users': [
 		{
 			username: 'admin',
 		}, {
-			username: 'lacky',
-			doors: [{id: 1}],
+			id: 2,
+			username: 'noob',
+			password: 'b872fe2ac43442',
+			requires_reset: true,
 		},
 	],
-	'DemoUser/logs?last_id=': [
-		{
-			id: 3,
-			user_id: 1,
-			door_id: 1,
-			method: 'web:10.1.1.101',
-			time: '2018-11-01 01:45:02',
-			door: 'Front Door',
-		},{
-			id: 2,
-			user_id: 1,
-			door_id: 1,
-			method: 'web:10.1.1.101',
-			time: '2018-10-23 20:38:17',
-			door: 'Front Door',
-		},
+	'users/DemoUser/forms': [
+		mockForm,
+		mockSecretForm,
+	],
+	'forms': [
+		mockForm,
+		mockForm2,
+	],
+	'forms/abc123': mockForm,
+	'forms/456def': mockForm2,
+	'forms/super-secret': mockSecretForm,
+	'forms/abc123/feedbacks?last_id=': [
+		mockFeedback,
+	],
+	'users/DemoUser/feedbacks?last_id=': [
+		mockFeedback,
 	],
 };
 
@@ -57,7 +145,7 @@ Backbone.sync = function(method, model, options) {
 			this.trigger('sync');
 			if (options.success)
 				setTimeout(() => {
-					options.success();
+					options.success(value);
 				});
 			return this;
 		}

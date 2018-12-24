@@ -21,6 +21,7 @@ CREATE TABLE forms (
     created DATETIME DEFAULT CURRENT_TIMESTAMP,
     expiration DATETIME,
     public BOOLEAN,
+    allow_anon BOOLEAN,
     data TEXT, -- JSON
     FOREIGN KEY(user_id) REFERENCES users(id)
 );

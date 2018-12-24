@@ -114,7 +114,6 @@ module.exports = Backbone.View.extend({
 	changePW: function(evt) {
 		evt.preventDefault();
 		this.scope.error = null;
-		// console.log('PP',this.$('.change input[name="password"]')[0].value);
 		Feedback.User.save({
 			password: this.$('.change input[name="password"]')[0].value,
 		}, {

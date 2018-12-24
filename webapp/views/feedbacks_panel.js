@@ -12,24 +12,42 @@ module.exports = Backbone.View.extend({
 		</h3>
 		<div rv-each-fb="form.feedbacks">
 			User: { fb:username },
+			<span rv-text="fb:created |luxon 'DATE_SHORT'"></span>
 			<span rv-each-resp="fb:data.responses |to_a">{ resp.key }: { resp.value }, </span>
 		</div>
 	`,
 	render: function() {
 		const view = this;
 		if (!this.form || this.form.id !== Feedback.Router.args[0]) {
+			//TODO: dont need form?
 			this.form = new (Backbone.Model.extend({
 				// idAtttibute: 'hash',
 				urlRoot: '/api/v1/forms',
 				initialize: function(options) {
+					const form = this;
 					this.feedbacks = new (Backbone.Collection.extend({
-						url: this.url() + '/feedbacks',
+						hasMore: true,
+						url: function() {
+							const lastID = this.models.length &&
+								this.models[this.models.length-1].id || '';
+							return form.url()+'/feedbacks?last_id='+lastID;
+						},
+						//TODO: add button to fetch more!
+						fetchMore: function(cb) {
+							this.fetch({ add: true, remove: false,
+								success: (coll, newLogs) => {
+									if (newLogs.length < 50)
+										coll.hasMore = false;
+									cb && cb();
+								},
+							});
+						},
 					}))();
 					this.on('sync', () => {
-						this.feedbacks.fetch({success: function() {
-							//TODO:
+						this.feedbacks.fetchMore(function() {
+							//TODO: should not be needed
 							view.render();
-						}});
+						});
 					});
 				},
 			}))({

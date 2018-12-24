@@ -35,15 +35,6 @@ module.exports = Backbone.View.extend({
 										rv-value="user:username" autocomplete="username">
 								</td>
 							</tr>
-							<tr rv-show="me">
-								<td>Keycode</td>
-								<td class="form-inline">
-									<input name="keycode" min="0" max="99999999"
-										placeholder="hidden" class="form-control"
-										rv-value="user.keycode" type="number">
-									<span>(8 digits, so 1 becomes 00000001)</span>
-								</td>
-							</tr>
 						</table>
 					</form>
 				</div>
@@ -74,7 +65,8 @@ module.exports = Backbone.View.extend({
 							<span rv-text="form:id"></span>
 							<a rv-href="'#' |+ form:hash"
 								rv-text="form:data.name |or form:hash"></a>
-							<span>({ form:feedbacks })</span>
+							<a rv-href="'#' |+ form:hash |+ '/feedback'">
+								({ form:feedbacks })</a>
 						</li>
 					</ol>
 				</div>
@@ -85,12 +77,16 @@ module.exports = Backbone.View.extend({
 			<div class="panel-heading fetch" data-toggle="collapse" data-target=".feedbacks .panel-collapse">
 				<div class="panel-title">Feedbacks</div>
 			</div>
-			<div class="panel-collapse collapse" rv-class-in="feedbacks.length |gt 50">
+			<div class="panel-collapse" rv-class-in="feedbacks.length |gt 50">
 				<div class="panel-body">
-					<a rv-href="'#' |+ feedback:form" rv-each-feedback="feedbacks">
-						<span rv-text="feedback:form"></span> &nbsp;
-						<span rv-text="feedback:created"></span> &nbsp;
-					</a>
+					<ol>
+						<li rv-each-feedback="feedbacks">
+							<a rv-href="'#' |+ feedback:form |+ '/feedback'"
+								rv-text="feedback:form_data.name |or feedback:form">
+							</a>
+							<span rv-text="feedback:created |luxon 'DATETIME_SHORT'"></span>
+						</li>
+					</ol>
 				</div>
 				<div class="panel-footer">
 					<input type="submit" value="More" class="more btn btn-default"
@@ -120,9 +116,11 @@ module.exports = Backbone.View.extend({
 		}
 
 		this.forms = new (Backbone.Collection.extend({
-			url: '/api/v1/forms',
+			url: `/api/v1/users/${username}/forms`,
 		}))();
-		this.forms.fetch();
+		this.forms.fetch({success: () => {
+			this.render();
+		}});
 
 		this.feedbacks = new (Backbone.Collection.extend({
 			hasMore: true,
@@ -146,11 +144,6 @@ module.exports = Backbone.View.extend({
 			pwType: me ? 'password': 'text',
 			showCurrent: !this.user.get('requires_reset') && me,
 		};
-
-		//TODO: render should not be nessicary
-		// this.logs.on('sync', _.bind(this.render, this));
-		// this.user.on('sync', _.bind(this.dingleDoors, this));
-		// this.doors.on('sync', _.bind(this.dingleDoors, this));
 	},
 	render: function() {
 		if (Feedback.Router.args[0] !== this.user.get('username'))
@@ -159,22 +152,6 @@ module.exports = Backbone.View.extend({
 		//TODO: rivets throws an error because of user?
 		Rivets.bind(this.$el, this.scope);
 		return this;
-	},
-	dingleDoors: function() {
-		if (!this.user.get('doors'))
-			return this.render();
-		this.doors.each(_.bind(function(d) {
-			if (_.findWhere(this.user.get('doors'), {id: d.id})) {
-				d.set('allowed', true);
-			}
-		}, this));
-		this.render();
-	},
-	fetch: function() {
-		if (!this.logs.length) {
-			this.logs.fetch();
-			this.logs.hasMore = true;
-		}
 	},
 	toggleFeedbacks: function() {
 		this.Feedbacks.open = !this.Feedbacks.open;
@@ -206,11 +183,9 @@ module.exports = Backbone.View.extend({
 
 		this.user.save(data, {patch: true, wait: true,
 			success: () => {
-				//console.log("YAY!", arguments)
 				this.scope.updateSuccess = 'Saved';
 			},
 			error: (m, e) => {
-				//console.log("ERROR!", e)
 				this.scope.updateError = e.responseText;
 			},
 		});
@@ -228,24 +203,6 @@ module.exports = Backbone.View.extend({
 				},
 			});
 		}
-	},
-	permit: function(e) {
-		const door = this.doors.find({id: this.$(e.currentTarget).data('id')});
-		door.sync(null, this, {
-			method: 'POST',
-			url: door.url()+'/permit/'+this.user.get('username'),
-		});
-		door.attributes.allowed = true;
-		this.render();
-	},
-	deny: function(e) {
-		const door = this.doors.find({id: this.$(e.currentTarget).data('id')});
-		door.sync(null, this, {
-			method: 'DELETE',
-			url: door.url()+'/permit/'+this.user.get('username'),
-		});
-		door.attributes.allowed = false;
-		this.render();
 	},
 	delUser: function() {
 		if (confirm('Are you sure you want to delete '+

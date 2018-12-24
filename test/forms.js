@@ -176,6 +176,8 @@ describe('Forms API', function() {
 				created: /[\d\-: ]+/,
 				form: this.form.hash,
 				data: {something: 'arbitrary'},
+				form_creator: 'admin',
+				form_data: this.form.data,
 			});
 		await agent.post('/forms/' + this.form.hash + '/feedbacks')
 			.send({
@@ -187,6 +189,8 @@ describe('Forms API', function() {
 				created: /[\d\-: ]+/,
 				form: this.form.hash,
 				data: {something: 'different'},
+				form_creator: 'admin',
+				form_data: this.form.data,
 			});
 		await agent.post('/forms/' + this.dform.hash + '/feedbacks')
 			.send({
@@ -198,6 +202,8 @@ describe('Forms API', function() {
 				created: /[\d\-: ]+/,
 				form: this.dform.hash,
 				data: {something: 'else'},
+				form_creator: 'form_dummy',
+				form_data: this.dform.data,
 			});
 		// list feedbacks
 		await agent.get('/forms/' + this.form.hash + '/feedbacks')
@@ -207,6 +213,8 @@ describe('Forms API', function() {
 				created: /[\d\-: ]+/,
 				form: this.form.hash,
 				data: {something: 'different'},
+				form_creator: 'admin',
+				form_data: this.form.data,
 			}]);
 		await agent.get('/forms/' + this.dform.hash + '/feedbacks')
 			.expect(200, [{
@@ -215,6 +223,8 @@ describe('Forms API', function() {
 				created: /[\d\-: ]+/,
 				form: this.dform.hash,
 				data: {something: 'else'},
+				form_creator: 'form_dummy',
+				form_data: this.dform.data,
 			}]);
 	});
 
@@ -231,6 +241,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.dform.hash,
 					data: {something: 'arbitrary'},
+					form_creator: 'form_dummy',
+					form_data: this.dform.data,
 				});
 			await agent.post('/auth')
 				.send({username: 'form_dummy', password: 'form_dummy'})
@@ -315,6 +327,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.form.hash,
 					data: {something: 'arbitrary'},
+					form_creator: 'admin',
+					form_data: this.form.data,
 				});
 			await agent.post('/forms/' + this.form.hash + '/feedbacks')
 				.send({
@@ -326,6 +340,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.form.hash,
 					data: {something: 'different'},
+					form_creator: 'admin',
+					form_data: this.form.data,
 				});
 			await agent.post('/forms/' + this.dform.hash + '/feedbacks')
 				.send({
@@ -337,6 +353,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.dform.hash,
 					data: {something: 'else'},
+					form_creator: 'form_dummy',
+					form_data: this.dform.data,
 				});
 			// list feedbacks
 			await agent.get('/forms/' + this.form.hash + '/feedbacks')
@@ -349,12 +367,16 @@ describe('Forms API', function() {
 						created: /[\d\-: ]+/,
 						form: this.dform.hash,
 						data: {something: 'else'},
+						form_creator: 'form_dummy',
+						form_data: this.dform.data,
 					}, {
 						id: 1,
 						username: 'admin',
 						created: /[\d\-: ]+/,
 						form: this.dform.hash,
 						data: {something: 'arbitrary'},
+						form_creator: 'form_dummy',
+						form_data: this.dform.data,
 					},
 				]);
 		});
@@ -429,6 +451,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.form.hash,
 					data: {something: 'arbitrary'},
+					form_creator: 'admin',
+					form_data: this.form.data,
 				});
 			await agent.post('/forms/' + this.form.hash + '/feedbacks')
 				.send({
@@ -440,6 +464,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.form.hash,
 					data: {something: 'different'},
+					form_creator: 'admin',
+					form_data: this.form.data,
 				});
 			await agent.post('/forms/' + this.dform.hash + '/feedbacks')
 				.send({
@@ -451,6 +477,8 @@ describe('Forms API', function() {
 					created: /[\d\-: ]+/,
 					form: this.dform.hash,
 					data: {something: 'else'},
+					form_creator: 'form_dummy',
+					form_data: this.dform.data,
 				});
 			// list feedbacks
 			await agent.get('/forms/' + this.form.hash + '/feedbacks')
@@ -469,12 +497,16 @@ describe('Forms API', function() {
 						created: /[\d\-: ]+/,
 						form: this.form.hash,
 						data: {something: 'different'},
+						form_creator: 'admin',
+						form_data: this.form.data,
 					}, {
 						id: 1,
 						username: null,
 						created: /[\d\-: ]+/,
 						form: this.form.hash,
 						data: {something: 'arbitrary'},
+						form_creator: 'admin',
+						form_data: this.form.data,
 					},
 				]);
 		});

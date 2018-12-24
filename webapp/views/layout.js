@@ -50,7 +50,7 @@ module.exports = Backbone.View.extend({
 			execute: function(cb, args, name) {
 				this.args = args;
 				if (!layout.loading && !Feedback.User.isAuthed
-						&& this.unauthRoutes.indexOf(name) < 0) {
+						&& !this.lastRouteUnauthed()) {
 					this.navigate('login', {trigger: true});
 				} else if (!Feedback.Router.name
 						&& layout.subviewCreators[name]) {
@@ -62,12 +62,12 @@ module.exports = Backbone.View.extend({
 				}
 			},
 			lastRouteUnauthed: function() {
-				return this.unauthRoutes.indexOf(this.lastRoute) < 0;
+				return this.unauthRoutes.indexOf(this.lastRoute) >= 0;
 			},
 		}))();
 
 		Feedback.User = new UserModel();
-		Feedback.User.on('relog', function(loggedIn) {
+		this.listenTo(Feedback.User, 'relog', function(loggedIn) {
 			if (loggedIn || Feedback.Router.lastRouteUnauthed()) {
 				layout.render();
 			} else {

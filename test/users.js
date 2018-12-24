@@ -181,6 +181,49 @@ describe('Users API', function() {
 			.expect(401);
 	});
 
+	it('forms', async function() {
+		const form = (
+			await agent.post('/forms')
+				.send({
+					public: true,
+					data: '{"name":"dude"}',
+				}).expect(200)
+		).body;
+		await agent.get('/users/admin/forms')
+			.expect(200, [form]);
+	});
+
+	it('feedbacks', async function() {
+		await agent.get('/users/admin/feedbacks')
+			.expect(200, []);
+		const form = (
+			await agent.post('/forms')
+				.send({
+					public: true,
+					data: '{"name":"dude"}',
+				}).expect(200)
+		).body;
+		await agent.get('/users/admin/feedbacks')
+			.expect(200, []);
+		const fb = (
+			await agent.post('/forms/' + form.hash + '/feedbacks')
+				.send({
+					data: {something: 'arbitrary'},
+				})
+				.expect(200, {
+					id: 1,
+					username: 'admin',
+					created: /[\d\-: ]+/,
+					form: form.hash,
+					data: {something: 'arbitrary'},
+					form_creator: 'admin',
+					form_data: form.data,
+				})
+		).body;
+		await agent.get('/users/admin/feedbacks')
+			.expect(200, [fb]);
+	});
+
 	describe('as an under-privileged user', function() {
 		beforeEach(async function() {
 			await agent.post('/auth')
@@ -212,7 +255,7 @@ describe('Users API', function() {
 		});
 
 		it('read', async function() {
-			await agent.get('/users/Dummy')
+			await agent.get('/users/dummy')
 				.expect(200, {
 					id: 2,
 					admin: false,
@@ -237,7 +280,7 @@ describe('Users API', function() {
 			await agent.patch('/users/Dummy')
 				.send({password: 'dummy'})
 				.expect(400, {password: 'must be at least 8 characters'});
-			await agent.patch('/users/Dummy')
+			await agent.patch('/users/dummy')
 				.send({password: 'door_dummy'})
 				.expect(200, {
 					id: 2,
@@ -285,6 +328,53 @@ describe('Users API', function() {
 				.expect(401);
 			await agent.delete('/auth')
 				.expect(401);
+		});
+
+		it('forms', async function() {
+			const form = (
+				await agent.post('/forms')
+					.send({
+						public: true,
+						data: '{"name":"dude"}',
+					}).expect(200)
+			).body;
+			await agent.get('/users/admin/forms')
+				.expect(403, { error: 'only admins can view others' });
+			await agent.get('/users/dummy/forms')
+				.expect(200, [form]);
+		});
+
+		it('feedbacks', async function() {
+			await agent.get('/users/admin/feedbacks')
+				.expect(403, { error: 'only admins can view others' });
+			await agent.get('/users/dummy/feedbacks')
+				.expect(200, []);
+			const form = (
+				await agent.post('/forms')
+					.send({
+						public: true,
+						data: '{"name":"dude"}',
+					}).expect(200)
+			).body;
+			await agent.get('/users/dummy/feedbacks')
+				.expect(200, []);
+			const fb = (
+				await agent.post('/forms/' + form.hash + '/feedbacks')
+					.send({
+						data: {something: 'arbitrary'},
+					})
+					.expect(200, {
+						id: 1,
+						username: 'Dummy',
+						created: /[\d\-: ]+/,
+						form: form.hash,
+						data: {something: 'arbitrary'},
+						form_creator: 'Dummy',
+						form_data: form.data,
+					})
+			).body;
+			await agent.get('/users/Dummy/feedbacks')
+				.expect(200, [fb]);
 		});
 	});
 });

@@ -168,6 +168,7 @@ async function feedbacks(request, response) {
 		return response.status(400).send({last_id: 'must be an int'});
 	}
 
+	//TODO: one query?
 	const formOwner = await db.get(
 		'SELECT * FROM forms WHERE hash = ? AND user_id = ?',
 		request.params.hash, user.id);
@@ -177,19 +178,24 @@ async function feedbacks(request, response) {
 			.send({error: 'only admins can view others forms feedbacks'});
 	}
 
-	const feedbacks = await db.all(`
-		SELECT feedbacks.*, users.username FROM feedbacks
+	const fbacks = await db.all(`
+		SELECT feedbacks.*, users.username, form.* FROM feedbacks,
+			(SELECT forms.data AS form_data, users.username AS form_creator FROM forms
+				LEFT JOIN users ON forms.user_id = users.id AND users.deleted_at IS NULL
+				WHERE forms.hash = ? ) AS form
 		LEFT JOIN users ON feedbacks.user_id = users.id
 		WHERE form_hash = ? AND feedbacks.id < COALESCE(?, 9e999)
-		ORDER BY feedbacks.id DESC LIMIT ?`,
-		request.params.hash, lastID, 50);
+		GROUP BY feedbacks.id ORDER BY feedbacks.id DESC LIMIT ?`,
+		request.params.hash, request.params.hash, lastID, 50);
 
-	response.send(feedbacks.map(fb => ({
+	response.send(fbacks.map(fb => ({
 		id: fb.id,
 		form: fb.form_hash,
 		created: fb.created,
 		username: fb.username,
 		data: JSON.parse(fb.data),
+		form_creator: fb.form_creator,
+		form_data: JSON.parse(fb.form_data),
 	})));
 }
 
@@ -199,6 +205,7 @@ async function submitFeedback(request, response) {
 	data = typeof data === 'object' && JSON.stringify(data) || data;
 
 	//TODO: ensure feedback-data-schema matches form!
+	//TODO: ensure form allows_anon if anon!
 
 	let sqlResp;
 	try {
@@ -212,10 +219,13 @@ async function submitFeedback(request, response) {
 	}
 
 	const feedback = await db.get(`
-		SELECT feedbacks.*, users.username FROM feedbacks
+		SELECT feedbacks.*, users.username, form.* FROM feedbacks,
+			(SELECT forms.data AS form_data, users.username AS form_creator FROM forms
+				LEFT JOIN users ON forms.user_id = users.id AND users.deleted_at IS NULL
+				WHERE forms.hash = ? ) AS form
 		LEFT JOIN users ON feedbacks.user_id = users.id
 		WHERE feedbacks.id = ?`,
-		sqlResp.stmt.lastID);
+		request.params.hash, sqlResp.stmt.lastID);
 
 	response.send({
 		id: feedback.id,
@@ -223,5 +233,7 @@ async function submitFeedback(request, response) {
 		created: feedback.created,
 		username: feedback.username,
 		data: JSON.parse(feedback.data),
+		form_creator: feedback.form_creator,
+		form_data: JSON.parse(feedback.form_data),
 	});
 }

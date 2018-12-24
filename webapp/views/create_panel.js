@@ -2,6 +2,23 @@
 
 // require('styles/create_panel.css');
 
+const sampleFormData = `{
+	"name":"Sample Survey Name",
+	"title":"Survey Title (optional)",
+	"description":"more info",
+	"entries":[{
+		"title":"sample question",
+		"description":"more info",
+		"other": "placeholder",
+		"options": [
+			"Option One",
+			"Option Two"
+		]
+	}, {
+		"title":"text-only question"
+	}]
+}`;
+
 module.exports = Backbone.View.extend({
 	id: 'CreatePanel',
 	className: 'container',
@@ -10,20 +27,8 @@ module.exports = Backbone.View.extend({
 		<form>
 			<div class="form-group">
 				<label for="data">RAW FORM JSON:</label>
-				<textarea id="data" name="data" class="form-control" rows="5">
-{
-	"name":"...",
-	"entries":[{
-		"title":"sample question",
-		"description":"more info",
-		"max": 0,
-		"other": true,
-		"options": [
-			"Option One"
-		]
-	}]
-}
-				</textarea>
+				<textarea id="data" name="data" class="form-control" rows="12"
+					rv-value="sampleFormData"></textarea>
 			</div>
 			<label class="checkbox-inline">
 				<input type="checkbox" name="public" value="true" checked>
@@ -40,9 +45,10 @@ module.exports = Backbone.View.extend({
 	events: {
 		'click [type="submit"]': 'createForm',
 	},
-	scope: {},
 	loading: true,
+	sampleFormData,
 	render: function() {
+		this.scope = { sampleFormData };
 		this.$el.html(this.template);
 		Rivets.bind(this.$el, this.scope);
 		return this;

@@ -116,18 +116,13 @@ async function index(request, response) {
 
 	const users = await db.all('SELECT * FROM users');
 
-	// TODO: generator!
-	const userList = [];
-	for (const usr of users) {
-		userList.push({
-			id: usr.id,
-			admin: Boolean(usr.admin),
-			username: usr.username,
-			password: usr.pw_salt? undefined : usr.password_hash,
-			requires_reset: !usr.pw_salt,
-		});
-	}
-	response.send(userList);
+	response.send(users.map(usr => ({
+		id: usr.id,
+		admin: Boolean(usr.admin),
+		username: usr.username,
+		password: usr.pw_salt? undefined : usr.password_hash,
+		requires_reset: !usr.pw_salt,
+	})));
 }
 
 async function create(request, response) {
@@ -197,7 +192,8 @@ async function read(request, response) {
 	const user = await checkCookie(request, response);
 	if (request.params.username === 'me')
 		request.params.username = user.username;
-	if (!user.admin && request.params.username !== user.username) {
+	if (!user.admin &&
+		request.params.username.toLowerCase() !== user.username.toLowerCase()) {
 		return response.status(403)
 			.send({error: 'only admins can view others'});
 	}
@@ -230,7 +226,8 @@ async function update(request, response) {
 	}
 
 	// console.log("Update_USER", user, request.params.username, user.username)
-	const sameUser = (request.params.username === user.username);
+	const sameUser = (
+		request.params.username.toLowerCase() === user.username.toLowerCase());
 	if (!sameUser && !user.admin) {
 		return response.status(403)
 			.send({error: 'can only update your own info'});
@@ -294,7 +291,8 @@ async function remove(request, response) {
 	const user = await checkCookie(request, response);
 	// if (request.params.username === 'me')
 	// 	request.params.username = user.username;
-	if (!user.admin && request.params.username !== user.username) {
+	if (!user.admin &&
+		request.params.username.toLowerCase() !== user.username.toLowerCase()) {
 		return response.status(403).send({error: 'only admins can delete others'});
 	}
 
@@ -312,7 +310,8 @@ async function forms(request, response) {
 	const user = await checkCookie(request, response);
 	if (request.params.username === 'me')
 		request.params.username = user.username;
-	if (!user.admin && request.params.username !== user.username) {
+	if (!user.admin &&
+		request.params.username.toLowerCase() !== user.username.toLowerCase()) {
 		return response.status(403)
 			.send({error: 'only admins can view others'});
 	}
@@ -324,36 +323,61 @@ async function forms(request, response) {
 		return response.status(400).send({last_id: 'must be an int'});
 	}
 
-	const camps = await db.all(`
-		SELECT * FROM forms
-		WHERE user_id = ? AND id < COALESCE(?, 9e999)
-		ORDER BY id DESC LIMIT ?`,
-		user.id, lastID, 50);
+	const forms = await db.all(`
+		SELECT forms.*, users.username, COUNT(feedbacks.id) as fbs FROM forms
+		LEFT JOIN users ON forms.user_id = users.id
+		LEFT JOIN feedbacks ON forms.hash = feedbacks.form_hash
+		WHERE users.username = ? AND users.deleted_at IS NULL
+			AND forms.id < COALESCE(?, 9e999)
+			AND (expiration IS NULL OR expiration > CURRENT_TIMESTAMP)
+		GROUP BY forms.id ORDER BY id DESC LIMIT ?`,
+		request.params.username, lastID, 50);
 
-	response.send(camps);
+	response.send(forms.map(form => ({
+		hash: form.hash,
+		feedbacks: form.fbs,
+		owner: form.username,
+		expiration: form.expiration,
+		data: JSON.parse(form.data),
+		public: Boolean(form.public),
+	})));
 }
 
 async function feedbacks(request, response) {
 	const user = await checkCookie(request, response);
 	if (request.params.username === 'me')
 		request.params.username = user.username;
-	if (!user.admin && request.params.username !== user.username) {
+	if (!user.admin &&
+		request.params.username.toLowerCase() !== user.username.toLowerCase()) {
 		return response.status(403)
 			.send({error: 'only admins can view others'});
 	}
 
 	let lastID;
 	try {
-		lastID = parseInt(request.query.last_id || 0); //TODO: add "|| 0" to other places?
+		lastID = parseInt(request.query.last_id);
 	} catch(e) {
 		return response.status(400).send({last_id: 'must be an int'});
 	}
 
-	const camps = await db.all(`
-		SELECT * FROM feedbacks
-		WHERE user_id = TRUE AND id < COALESCE(?, 9e999)
+	const feedbacks = await db.all(`
+		SELECT feedbacks.*,
+			forms.data AS form_data,
+			users.username AS form_creator FROM feedbacks
+		LEFT JOIN forms ON feedbacks.form_hash = forms.hash
+		LEFT JOIN users ON forms.user_id = users.id
+		WHERE feedbacks.user_id = (SELECT users.id FROM users WHERE username = ?)
+			AND feedbacks.id < COALESCE(?, 9e999)
 		ORDER BY id DESC LIMIT ?`,
-		lastID, 50);
+		request.params.username, lastID, 50);
 
-	response.send(camps);
+	response.send(feedbacks.map(fb => ({
+		id: fb.id,
+		form: fb.form_hash,
+		created: fb.created,
+		data: JSON.parse(fb.data),
+		form_creator: fb.form_creator,
+		username: request.params.username,
+		form_data: JSON.parse(fb.form_data),
+	})));
 }
