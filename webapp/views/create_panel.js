@@ -65,10 +65,10 @@ module.exports = Backbone.View.extend({
 		this.form = new (Backbone.Model.extend({
 			url: '/api/v1/forms',
 		}))(data);
-		this.form.save(null, {success: function() {
-			//TODO: navigate to form!
+		this.form.save(null, {success: function(f) {
+			Feedback.Router.navigate(f.get('hash'), {trigger: true});
 		}, error: function() {
-			//ODO: show error msg!
+			//TODO: show error msg!
 		}});
 	},
 });
