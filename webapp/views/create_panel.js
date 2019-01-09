@@ -31,7 +31,7 @@ module.exports = Backbone.View.extend({
 					rv-value="sampleFormData"></textarea>
 			</div>
 			<label class="checkbox-inline">
-				<input type="checkbox" name="public" value="true" checked>
+				<input type="checkbox" name="public" value="false">
 				Public
 			</label>
 			<!-- TODO: expiration.. -->

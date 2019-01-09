@@ -2,8 +2,8 @@
 module.exports = require('./main');
 
 const mockForm = {
-	hash: 'abc123',
-	feedbacks: 3,
+	hash: 'freeeedom',
+	feedbacks: 1,
 	owner: 'DemoUser',
 	expiration: null,
 	public: true,
@@ -60,7 +60,7 @@ const mockForm = {
 const mockForm2 = {
 	hash: '456def',
 	public: false,
-	feedbacks: 1,
+	feedbacks: 0,
 	owner: 'admin',
 	data: JSON.parse(module.exports.Views.CreatePanel.prototype.sampleFormData),
 };
@@ -68,7 +68,7 @@ const mockForm2 = {
 const mockSecretForm = {
 	hash: 'super-secret',
 	public: false,
-	feedbacks: 1,
+	feedbacks: 0,
 	owner: 'DemoUser',
 	data: {
 		name: 'secret form',
@@ -82,12 +82,13 @@ const mockSecretForm = {
 
 const mockFeedback = {
 	id: 69,
-	form: 'abc123',
+	form: 'freeeedom',
 	created: '2018-12-24 06:43:42',
 	username: 'DemoUser',
 	data: {
 		responses: {
 			0: [
+				'1',
 				'other response!',
 			],
 		},
@@ -124,10 +125,10 @@ const MockData = {
 		mockForm,
 		mockForm2,
 	],
-	'forms/abc123': mockForm,
+	'forms/freeeedom': mockForm,
 	'forms/456def': mockForm2,
 	'forms/super-secret': mockSecretForm,
-	'forms/abc123/feedbacks?last_id=': [
+	'forms/freeeedom/feedbacks?last_id=': [
 		mockFeedback,
 	],
 	'users/DemoUser/feedbacks?last_id=': [

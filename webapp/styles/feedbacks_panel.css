@@ -1,0 +1,5 @@
+#FeedbacksPanel {
+	table tr th {
+		border-top: none;
+	}
+}

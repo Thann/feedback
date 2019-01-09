@@ -1,6 +1,6 @@
 // FeedbacksPanel - List & analyze feedbacks for a form
 
-// require('styles/feedbacks_panel.css');
+require('styles/feedbacks_panel.css');
 
 module.exports = Backbone.View.extend({
 	id: 'FeedbacksPanel',
@@ -10,11 +10,20 @@ module.exports = Backbone.View.extend({
 			<span rv-text="form.attributes.data.title |or form.attributes.data.name"></span>
 			<a rv-href="'#' |+ form:id" class="fa fa-external-link"></a>
 		</h3>
-		<div rv-each-fb="form.feedbacks">
-			User: { fb:username },
-			<span rv-text="fb:created |luxon 'DATE_SHORT'"></span>
-			<span rv-each-resp="fb:data.responses |to_a">{ resp.key }: { resp.value }, </span>
-		</div>
+		<table class="table">
+			<tr>
+				<th>user</th>
+				<th>date</th>
+				<th rv-each-entry="form.attributes.data.entries">
+					{ entry.title }
+				</th>
+			<tr>
+			<tr rv-each-feedback="form.feedbacks">
+				<td>{ feedback:username }</td>
+				<td rv-text="feedback:created |luxon 'DATE_SHORT'"></td>
+				<td rv-each-fb="feedback |formatFeedback">{ fb }</td>
+			</tr>
+		</table>
 	`,
 	render: function() {
 		const view = this;
@@ -64,3 +73,13 @@ module.exports = Backbone.View.extend({
 		return this;
 	},
 });
+
+Rivets.formatters.formatFeedback = function(feedback) {
+	const entries = feedback.attributes.form_data.entries;
+	const responses = feedback.attributes.data.responses;
+	return entries.map((entry, entryIdx) => {
+		return (responses[entryIdx] || []).map((sel) => {
+			return entry.options && entry.options[sel] || sel;
+		}).join(', ');
+	});
+};
