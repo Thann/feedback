@@ -80,11 +80,13 @@ module.exports = Backbone.View.extend({
 		this.$el.html(this.template);
 		Rivets.bind(this.$el, this.scope);
 		if (this.scroll)
-			this.$('tr.selected').eq(0).each((i,e) => e.scrollIntoView());
+			this.$('tr.selected').eq(0).each((i,e) => {
+				e.scrollIntoView();
+				this.scroll = false;
+			});
 		return this;
 	},
 	moreFeedbacks() {
-		this.scroll = false;
 		this.form.feedbacks.fetchMore();
 	},
 });
