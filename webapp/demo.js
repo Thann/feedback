@@ -50,7 +50,7 @@ const mockForm = {
 				],
 			},
 			{
-				title: 'Additionl comments',
+				title: 'Additional comments',
 				other: ' ',
 			},
 		],
@@ -134,6 +134,8 @@ const MockData = {
 	'users/DemoUser/feedbacks?last_id=': [
 		mockFeedback,
 	],
+	'feedbacks?last_id=69': [],
+	'feedbacks': mockFeedback,
 };
 
 const sync = Backbone.sync;
@@ -143,7 +145,8 @@ Backbone.sync = function(method, model, options) {
 		if (url.endsWith(key)) {
 			console.log('DEMO: Mocking data for', url, value);
 			this.set(value);
-			this.trigger('sync');
+			// TODO: is this needed?
+			// this.trigger('sync');
 			if (options.success)
 				setTimeout(() => {
 					options.success(value);

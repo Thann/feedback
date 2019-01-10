@@ -44,6 +44,7 @@ module.exports = Backbone.View.extend({
 				'create': 'create',
 				'user/:id': 'user',
 				':form/feedback': 'feedbacks',
+				':form/feedback/:fbid': 'feedbacks',
 				'*notFound': 'form',
 			},
 			unauthRoutes: ['form', 'login'],

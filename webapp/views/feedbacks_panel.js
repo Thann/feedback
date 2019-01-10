@@ -18,13 +18,21 @@ module.exports = Backbone.View.extend({
 					{ entry.title }
 				</th>
 			<tr>
-			<tr rv-each-feedback="form.feedbacks">
+			<tr rv-each-feedback="form.feedbacks"
+				rv-class-selected="feedback.id |eq selected">
 				<td>{ feedback:username }</td>
 				<td rv-text="feedback:created |luxon 'DATE_SHORT'"></td>
 				<td rv-each-fb="feedback |formatFeedback">{ fb }</td>
 			</tr>
 		</table>
+		<button class="btn btn-default" rv-enabled="form.feedbacks.hasMore">
+			More Feedbacks
+		</button>
 	`,
+	events: {
+		'click button': 'moreFeedbacks',
+	},
+	scroll: true,
 	render: function() {
 		const view = this;
 		if (!this.form || this.form.id !== Feedback.Router.args[0]) {
@@ -47,16 +55,16 @@ module.exports = Backbone.View.extend({
 								success: (coll, newLogs) => {
 									if (newLogs.length < 50)
 										coll.hasMore = false;
-									cb && cb();
 								},
 							});
 						},
 					}))();
 					this.on('sync', () => {
-						this.feedbacks.fetchMore(function() {
-							//TODO: should not be needed
-							view.render();
-						});
+						this.feedbacks.fetchMore();
+					});
+					//TODO: should not be needed
+					view.listenTo(this.feedbacks, 'sync', () => {
+						view.render();
 					});
 				},
 			}))({
@@ -67,10 +75,17 @@ module.exports = Backbone.View.extend({
 
 		this.scope = {
 			form: this.form,
+			selected: Feedback.Router.args[1],
 		};
 		this.$el.html(this.template);
 		Rivets.bind(this.$el, this.scope);
+		if (this.scroll)
+			this.$('tr.selected').eq(0).each((i,e) => e.scrollIntoView());
 		return this;
+	},
+	moreFeedbacks() {
+		this.scroll = false;
+		this.form.feedbacks.fetchMore();
 	},
 });
 

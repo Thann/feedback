@@ -18,11 +18,11 @@ Rivets.formatters.lte = function(value, arg) {
 };
 
 Rivets.formatters.eq = function(value, arg) {
-	return value === arg;
+	return value == arg; // eslint-disable-line eqeqeq
 };
 
 Rivets.formatters.ne = function(value, arg) {
-	return value !== arg;
+	return value != arg; // eslint-disable-line eqeqeq
 };
 
 Rivets.formatters.and = function(value, arg) {

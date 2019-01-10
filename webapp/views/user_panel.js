@@ -81,7 +81,7 @@ module.exports = Backbone.View.extend({
 				<div class="panel-body">
 					<ol>
 						<li rv-each-feedback="feedbacks">
-							<a rv-href="'#' |+ feedback:form |+ '/feedback'"
+							<a rv-href="'#' |+ feedback:form |+ '/feedback/' |+ feedback:id"
 								rv-text="feedback:form_data.name |or feedback:form">
 							</a>
 							<span rv-text="feedback:created |luxon 'DATETIME_SHORT'"></span>
